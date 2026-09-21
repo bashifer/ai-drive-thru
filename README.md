@@ -110,6 +110,9 @@ The page carries six regression tests. Each plays a scripted car into the microp
 the driver, the kid, the passenger, the next lane — waits for the agent to work, then scores
 the resulting cart against an expected ticket and shows PASS or FAIL with what was expected,
 what arrived, and which slots differ. They are the same scenes the offline bench runs.
+Every test is a new car: a session that has taken an order remembers it ("I've already got a
+lab burger on there"), so the lane opens fresh sessions on both ears for the next one, just
+as the bench does for every scene.
 
 ```bash
 npm run clips     # writes public/clips/*.wav once, using AssemblyAI voices

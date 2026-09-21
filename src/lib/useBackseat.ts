@@ -10,7 +10,7 @@ import { clipUrl, type Scenario, type ScenarioCue } from "./scenarios";
 import { describeActual, scoreOrder, type Score } from "./scoring";
 import { ShadowCart } from "./shadowCart";
 import { ToolRunner, type QueuedToolCall } from "./toolDispatch";
-import { SttDiarizationClient, type SttTurn } from "./sttStream";
+import { SttDiarizationClient, type SttEvent, type SttTurn } from "./sttStream";
 import { VoiceAgentClient, type VoiceAgentEvent } from "./voiceAgent";
 
 export type Status = "idle" | "starting" | "live" | "stopping" | "error";
@@ -22,6 +22,9 @@ export type TranscriptEntry = {
   at: number;
   speaker?: string;
   interrupted?: boolean;
+  /** The customer turn a line came from (performance.now ms), to name the voice once the room ear can. */
+  heardFrom?: number;
+  heardTo?: number;
 };
 
 export type XRayEvent = {
@@ -109,6 +112,9 @@ export function useBackseat() {
   /** A scripted line has been played and the agent has not taken its turn yet. */
   const awaitingAgentTurn = useRef(false);
   const scenarioRunning = useRef(false);
+  /** The open sessions have heard a customer, so the next scripted car needs new ones. */
+  const sessionUsed = useRef(false);
+  const laneOpts = useRef<AgentOptions>({});
   const daypartRef = useRef<"breakfast" | "allday">("allday");
 
   const [status, setStatus] = useState<Status>("idle");
@@ -152,6 +158,27 @@ export function useBackseat() {
     setSpeakers(
       room.speakerStats.map((s) => ({ speaker: s.speaker, label: guestName(s.speaker, p), ms: Math.round(s.ms) })),
     );
+  }, []);
+
+  /**
+   * A transcript line is written the moment the focused ear hears the turn, about a
+   * second before the room ear knows whose voice it was. Fill the name in when it
+   * does — and, after the end-of-session pass, correct the ones it got wrong.
+   */
+  const relabelTranscript = useCallback((all: boolean) => {
+    const room = roomRef.current;
+    setTranscript((lines) => {
+      let changed = false;
+      const next = lines.map((line) => {
+        if (line.role !== "customer" || line.heardFrom === undefined) return line;
+        if (!all && line.speaker && line.speaker !== "UNKNOWN") return line;
+        const who = room.attribute(line.text, line.heardFrom, line.heardTo);
+        if (who.speaker === "UNKNOWN" || who.speaker === line.speaker) return line;
+        changed = true;
+        return { ...line, speaker: who.speaker };
+      });
+      return changed ? next : lines;
+    });
   }, []);
 
   /**
@@ -218,6 +245,7 @@ export function useBackseat() {
       );
       syncOrder();
       syncSpeakers();
+      relabelTranscript(true);
 
       pushEvent({
         ear: "room",
@@ -228,7 +256,7 @@ export function useBackseat() {
         tone: changes.length ? "warn" : "good",
       });
     },
-    [pushEvent, syncOrder, syncSpeakers],
+    [pushEvent, relabelTranscript, syncOrder, syncSpeakers],
   );
 
   const handleAgentEvent = useCallback(
@@ -261,9 +289,11 @@ export function useBackseat() {
 
         case "transcript.user": {
           const text = (e as { text: string }).text;
+          sessionUsed.current = true;
           setPartial("");
-          const who = roomRef.current.attribute(text, turnStartedAt.current);
-          pushLine({ role: "customer", text, speaker: who.speaker });
+          const heardTo = performance.now();
+          const who = roomRef.current.attribute(text, turnStartedAt.current, heardTo);
+          pushLine({ role: "customer", text, speaker: who.speaker, heardFrom: turnStartedAt.current, heardTo });
           if (sideTimer.current) clearTimeout(sideTimer.current);
           sideTimer.current = setTimeout(checkSideRequests, 1800);
           break;
@@ -330,6 +360,7 @@ export function useBackseat() {
             name: string;
             arguments: Record<string, unknown>;
           };
+          sessionUsed.current = true;
           queuedCalls.current.push({
             callId: call_id,
             name,
@@ -357,6 +388,127 @@ export function useBackseat() {
     [checkSideRequests, pushEvent, pushLine, runTool, syncOrder],
   );
 
+  const handleRoomEvent = useCallback(
+    (evt: SttEvent) => {
+      if (evt.type === "SpeakerRevision") {
+        applyRevision(evt as unknown as SpeakerRevision);
+        return;
+      }
+      if (evt.type !== "Turn") return;
+
+      const turn = evt as SttTurn;
+      roomRef.current.ingest(turn);
+      if (!turn.end_of_turn) return;
+
+      syncSpeakers();
+      relabelTranscript(false);
+      if (turn.speaker_label && turn.transcript) {
+        pushEvent({ ear: "room", label: `voice ${turn.speaker_label}`, detail: turn.transcript.slice(0, 90) });
+      }
+    },
+    [applyRevision, pushEvent, relabelTranscript, syncSpeakers],
+  );
+
+  /** An empty ticket on both carts, with nothing left over from earlier calls. */
+  const resetTicket = useCallback(() => {
+    orderRef.current.reset();
+    shadowRef.current.reset();
+    askedAbout.current.clear();
+    queuedCalls.current = [];
+    toolRunner.current = null;
+    syncOrder();
+  }, [syncOrder]);
+
+  /** Everything that belongs to one car: its ticket, its turns, its voices, its transcript. */
+  const clearCar = useCallback(() => {
+    resetTicket();
+    if (sideTimer.current) clearTimeout(sideTimer.current);
+    turnStartedAt.current = performance.now();
+    speechStoppedAt.current = null;
+    awaitingAudio.current = false;
+    agentSpeaking.current = false;
+    roomRef.current.start();
+    setTranscript([]);
+    setPartial("");
+    syncSpeakers();
+  }, [resetTicket, syncSpeakers]);
+
+  /** End both sessions now. Anything they still send is ignored from here on. */
+  const releaseEars = useCallback(() => {
+    const agent = agentRef.current;
+    const stt = sttRef.current;
+    agentRef.current = null;
+    sttRef.current = null;
+    agent?.end();
+    // No refinement pass: the car that is leaving has already been scored.
+    void stt?.close(0);
+  }, []);
+
+  /** A lane that cannot open a session is closed, with the reason on screen. */
+  const failLane = useCallback(
+    async (message: string) => {
+      releaseEars();
+      await audioRef.current?.stop();
+      audioRef.current = null;
+      setError(message);
+      setStatus("error");
+    },
+    [releaseEars],
+  );
+
+  /**
+   * Open both ears for one car: a Voice Agent session for the conversation and a
+   * streaming session for who is speaking. Events from a session that has since been
+   * replaced are dropped, so a car that has left cannot touch the next one's ticket.
+   */
+  const openEars = useCallback(
+    async (opts: AgentOptions) => {
+      const agent = new VoiceAgentClient();
+      const stt = new SttDiarizationClient();
+      agentRef.current = agent;
+      sttRef.current = stt;
+      sessionUsed.current = false;
+      // The greeting is the agent's turn; nothing scripted talks over it.
+      awaitingAgentTurn.current = true;
+
+      agent.onEvent((e) => {
+        if (agentRef.current === agent) handleAgentEvent(e);
+      });
+      stt.onEvent((e) => {
+        if (sttRef.current === stt) handleRoomEvent(e);
+      });
+
+      await Promise.all([
+        agent.connect(buildSessionConfig({ ...opts, daypart: daypartRef.current })),
+        stt
+          .connect({
+            keyterms: menuKeyterms(100),
+            agentContext: opts.greeting ?? DEFAULT_GREETING,
+            maxSpeakers: 3,
+          })
+          // Word timings count from the stream's first audio, which flows as soon as
+          // this socket is open — not when the other ear has finished connecting.
+          .then(() => roomRef.current.start()),
+      ]);
+
+      pushEvent({ ear: "room", label: "diarization stream open", detail: "universal-3-5-pro, speaker_labels", tone: "good" });
+    },
+    [handleAgentEvent, handleRoomEvent, pushEvent],
+  );
+
+  /**
+   * The next car at the speaker. A session that has taken an order remembers it —
+   * "I've already got a lab burger on there" — so each car gets new sessions on both
+   * ears, while the microphone and the speakers stay as they are.
+   */
+  const nextCar = useCallback(async () => {
+    releaseEars();
+    audioRef.current?.flushPlayback();
+    clearCar();
+    pushEvent({ ear: "agent", label: "next car", detail: "new sessions on both ears; the last conversation left with the last car" });
+    await openEars(laneOpts.current);
+  }, [clearCar, openEars, pushEvent, releaseEars]);
+
   /**
    * Run one scripted car through the live lane and score what lands on the ticket.
    *
@@ -370,13 +522,6 @@ export function useBackseat() {
       if (!audio || scenarioRunning.current) return;
       scenarioRunning.current = true;
 
-      orderRef.current.reset();
-      shadowRef.current.reset();
-      askedAbout.current.clear();
-      queuedCalls.current = [];
-      toolRunner.current = null;
-      syncOrder();
-
       const expected = scenario.expect.ticket.map((e) => `${e.qty}×${e.item}`);
       setScenarioRun({
         scenarioId: scenario.id,
@@ -388,6 +533,18 @@ export function useBackseat() {
         expected,
         notes: [],
       });
+
+      // Every scripted car is a new customer, as it is on the bench.
+      try {
+        if (sessionUsed.current) await nextCar();
+        else resetTicket();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setScenarioRun((r) => (r ? { ...r, status: "fail", notes: [`no session for this car: ${message}`] } : r));
+        scenarioRunning.current = false;
+        await failLane(message);
+        return;
+      }
       pushEvent({ ear: "room", label: `regression: ${scenario.title}`, detail: scenario.proves });
 
       const startedAt = performance.now();
@@ -460,7 +617,7 @@ export function useBackseat() {
         scenarioRunning.current = false;
       }
     },
-    [pushEvent, syncOrder],
+    [failLane, nextCar, pushEvent, resetTicket],
   );
 
   const start = useCallback(
@@ -468,29 +625,19 @@ export function useBackseat() {
       if (status === "live" || status === "starting") return;
       setStatus("starting");
       setError(null);
-      askedAbout.current.clear();
-      turnStartedAt.current = performance.now();
-      queuedCalls.current = [];
-      toolRunner.current = null;
-      roomRef.current.start();
-      orderRef.current.reset();
-      shadowRef.current.reset();
-      setTranscript([]);
       setEvents([]);
-      syncOrder();
+      laneOpts.current = opts;
+      clearCar();
 
       try {
         const audio = new AudioEngine();
-        const agent = new VoiceAgentClient();
-        const stt = new SttDiarizationClient();
         audioRef.current = audio;
-        agentRef.current = agent;
-        sttRef.current = stt;
 
-        // Start capture inside the user gesture, then open both ears.
+        // Start capture inside the user gesture, then open both ears. Audio goes to
+        // whichever sessions are current, so the next car can get new ones mid-lane.
         await audio.start((kind, buf) => {
-          if (kind === "agent") agent.sendAudio(buf);
-          else stt.sendAudio(buf);
+          if (kind === "agent") agentRef.current?.sendAudio(buf);
+          else sttRef.current?.sendAudio(buf);
         });
         setMicDenied(audio.micDenied);
         if (audio.micDenied) {
@@ -502,47 +649,13 @@ export function useBackseat() {
           });
         }
 
-        agent.onEvent(handleAgentEvent);
-        stt.onEvent((evt) => {
-          if (evt.type === "SpeakerRevision") {
-            applyRevision(evt as unknown as SpeakerRevision);
-            return;
-          }
-          if (evt.type === "Turn") {
-            const turn = evt as SttTurn;
-            roomRef.current.ingest(turn);
-            if (turn.end_of_turn) {
-              syncSpeakers();
-              if (turn.speaker_label && turn.transcript) {
-                pushEvent({
-                  ear: "room",
-                  label: `voice ${turn.speaker_label}`,
-                  detail: turn.transcript.slice(0, 90),
-                });
-              }
-            }
-          }
-        });
-
-        await Promise.all([
-          agent.connect(buildSessionConfig({ ...opts, daypart: daypartRef.current })),
-          stt.connect({
-            keyterms: menuKeyterms(100),
-            agentContext: opts.greeting ?? DEFAULT_GREETING,
-            maxSpeakers: 3,
-          }),
-        ]);
-
-        roomRef.current.start();
+        await openEars(opts);
         setStatus("live");
-        pushEvent({ ear: "room", label: "diarization stream open", detail: "universal-3-5-pro, speaker_labels", tone: "good" });
       } catch (err) {
-        setStatus("error");
-        setError(err instanceof Error ? err.message : String(err));
-        await audioRef.current?.stop();
+        await failLane(err instanceof Error ? err.message : String(err));
       }
     },
-    [applyRevision, handleAgentEvent, pushEvent, status, syncOrder, syncSpeakers],
+    [clearCar, failLane, openEars, pushEvent, status],
   );
 
   const stop = useCallback(async () => {

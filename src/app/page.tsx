@@ -504,9 +504,11 @@ function TranscriptPane({
   partial: string;
   primary: string | null;
 }) {
-  const endRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    // Scroll the pane, never the page: the order board has to stay in view.
+    const list = listRef.current;
+    list?.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }, [transcript.length, partial]);
 
   return (
@@ -514,7 +516,7 @@ function TranscriptPane({
       <h2 className="border-b border-white/10 px-5 py-3 text-sm font-semibold uppercase tracking-widest text-slate-300">
         Lane audio
       </h2>
-      <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4 text-sm">
+      <div ref={listRef} className="max-h-[45vh] flex-1 space-y-3 overflow-y-auto px-5 py-4 text-sm">
         {transcript.length === 0 && !partial && (
           <p className="text-slate-500">The agent greets the car as soon as the lane opens.</p>
         )}
@@ -528,7 +530,6 @@ function TranscriptPane({
           </div>
         ))}
         {partial && <div className="text-slate-400 italic">{partial}…</div>}
-        <div ref={endRef} />
       </div>
     </section>
   );
@@ -705,7 +706,7 @@ function XRayPane({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto border-t border-white/10 px-5 py-3">
+      <div className="max-h-[55vh] flex-1 overflow-y-auto border-t border-white/10 px-5 py-3">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">Event stream</h3>
         <ul className="space-y-1.5 font-mono text-[11px] leading-snug">
           {events.map((e) => (
