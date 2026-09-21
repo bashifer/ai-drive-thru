@@ -259,6 +259,16 @@ describe("one order, several people", () => {
     assert.ok(confirmed(e).find((l) => l.name === "Crispy Chicken Sandwich")!.modifiers.includes("spicy"));
   });
 
+  test("a correction too short to place with a voice is the driver's, not a stranger's", () => {
+    // "Make it small" is under a second of speech, and the room ear often has no label
+    // for it yet. Reading that as a passenger bounced the driver's own correction back
+    // to them as a permission question.
+    const e = carFullOfPeople();
+    const out = e.modifyItem({ spoken: "large fries", size: "small", attribution: unknownVoice() });
+    assert.equal(out.status, "ok");
+    assert.equal(confirmed(e).find((l) => l.name === "Fries")!.size, "small");
+  });
+
   test("a passenger may not quietly change the driver's food", () => {
     const e = carFullOfPeople();
     const out = e.modifyItem({ spoken: "large fries", size: "small", attribution: backSeat(), whose: "driver" });

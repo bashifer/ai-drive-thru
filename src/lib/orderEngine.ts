@@ -53,6 +53,9 @@ export const UNASSIGNED = "UNASSIGNED";
  */
 export const DRIVER = "DRIVER";
 
+/** A label the room ear could not attach to anyone: too short, too noisy, or not heard yet. */
+const unplaced = (speaker: string) => speaker === UNASSIGNED || speaker === "UNKNOWN" || speaker === "PENDING";
+
 export type LineStatus = "confirmed" | "pending";
 
 /** Who an item is for, as the customer would express it. */
@@ -224,7 +227,7 @@ export class OrderEngine {
    */
   private noteSpeaker(attribution?: Attribution) {
     const speaker = attribution?.speaker;
-    if (!speaker || speaker === UNASSIGNED || speaker === "UNKNOWN" || speaker === "PENDING") return;
+    if (!speaker || unplaced(speaker)) return;
 
     const confirmed = attribution?.verdict === "driver";
 
@@ -259,8 +262,7 @@ export class OrderEngine {
   private ownerFor(speaker: string, forWhom: ForWhom | undefined): string {
     if (forWhom === "driver") return this.driver ?? DRIVER;
     if (forWhom === "other") return UNASSIGNED;
-    const unplaced = speaker === UNASSIGNED || speaker === "UNKNOWN" || speaker === "PENDING";
-    return unplaced ? (this.driver ?? DRIVER) : speaker;
+    return unplaced(speaker) ? (this.driver ?? DRIVER) : speaker;
   }
 
   addItem(args: AddArgs): Outcome {
@@ -327,7 +329,7 @@ export class OrderEngine {
 
     const speaker = args.attribution?.speaker ?? UNASSIGNED;
     const verdict = args.attribution?.verdict ?? "unverified";
-    const requestedBy = speaker === UNASSIGNED || speaker === "UNKNOWN" || speaker === "PENDING" ? (this.driver ?? DRIVER) : speaker;
+    const requestedBy = unplaced(speaker) ? (this.driver ?? DRIVER) : speaker;
     const needsQuantityCheck = this.guards && quantity > GUARDS.confirmQuantity;
     // Only a positive identification of another voice holds an item back.
     const sideVoice = this.speakerAware && verdict === "other_voice";
@@ -499,7 +501,10 @@ export class OrderEngine {
     const { item } = this.find(args.spoken);
     if (!item) return { status: "not_found", message: `No "${args.spoken}" on this order to change.` };
 
-    const speaker = args.attribution?.speaker ?? UNASSIGNED;
+    // A correction too short to place is the person the agent is talking to, exactly as
+    // it is when an item is added: only a positively identified other voice is a passenger.
+    const heard = args.attribution?.speaker ?? UNASSIGNED;
+    const speaker = unplaced(heard) ? (this.driver ?? DRIVER) : heard;
     const line = this.targetLine(item.id, speaker, args.whose);
     if (!line) {
       return {

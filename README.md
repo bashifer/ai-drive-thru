@@ -128,7 +128,7 @@ correct ticket attached. The nearest open data is Google's
 like AISHELL-5 (Mandarin, no orders), and noise sets like MS-SNSD and DEMAND. So the bench
 builds its own scenes, with ground truth.
 
-**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 33 cases against the
+**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 36 cases against the
 order engine in under a second: corrections, ownership and permission, back-seat requests,
 prank quantities, repeats, items that are not on the menu. Phrasing follows Taskmaster-2.
 
