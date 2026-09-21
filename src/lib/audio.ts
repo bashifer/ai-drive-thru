@@ -181,6 +181,11 @@ export class AudioEngine {
     return buf;
   }
 
+  /** Fetch and decode a clip ahead of time, so it starts on the beat when it is played. */
+  async preload(url: string) {
+    if (this.ctx) await this.loadClip(url);
+  }
+
   /** Mix a scenario clip into the mic bus (and the speakers) once. */
   async playClip(clip: InjectedClip) {
     const ctx = this.ctx;

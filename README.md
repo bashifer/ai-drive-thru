@@ -102,7 +102,8 @@ cp .env.example .env.local   # paste your AssemblyAI key
 npm run dev
 ```
 
-Open http://localhost:3000 in a Chromium browser and press **Pull up to the speaker**.
+Open http://localhost:3000 in a Chromium browser. **▶ Watch a recorded lane** needs no key and
+no microphone; **Pull up to the speaker** opens a live one.
 
 ### The demo buttons are the test suite
 
@@ -139,6 +140,23 @@ on the spot. The gap on screen is therefore a lower bound. The baseline column i
 below measures the other half: the same audio through a separate single-ear conversation,
 steered by its own answers.
 
+### Replay: a recorded lane, decided again
+
+**▶ Watch a recorded lane** plays three cars — 260 nuggets, a kid shouting for a shake, and
+"hers without pickles" — in about two minutes, with no microphone, no key and no credits.
+
+The tape (`public/replays/lane.json`) holds only what AssemblyAI said: the Voice Agent's events
+(transcripts, tool calls, the agent's own voice) and the room ear's finished turns with their
+word timings and speaker labels. Nothing Backseat decided is on it. The events go through the
+same handlers at the moments they happened, so attribution, the order engine and both carts
+decide again in the browser as it plays; the session ids in the X-ray are the recorded
+sessions' own. Silences in which nothing happens are cut to a beat, and the agent's voice is
+kept as 16 kHz μ-law to hold the tape to 1.6 MB.
+
+To record another: `npm run dev`, open `/?record`, run the tests you want on it, then press
+**● recording · save tape**. The page writes `public/replays/lane.json` through a route that
+exists only in development.
+
 ## Testing: a virtual car, not a microphone
 
 There is no public corpus of drive-thru orders with a kid shouting over the driver and a
@@ -148,11 +166,11 @@ correct ticket attached. The nearest open data is Google's
 like AISHELL-5 (Mandarin, no orders), and noise sets like MS-SNSD and DEMAND. So the bench
 builds its own scenes, with ground truth.
 
-**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 43 cases in under a
-second. Thirty-six go straight at the order engine: corrections, ownership and permission,
+**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 59 cases in under a
+second. Forty-two go straight at the order engine: corrections, ownership and permission,
 back-seat requests, prank quantities, repeats, items that are not on the menu, in phrasing
-that follows Taskmaster-2. Seven replay tool calls that real sessions made through both
-carts of the A/B view.
+that follows Taskmaster-2. Eleven replay tool calls that real sessions made through both
+carts of the A/B view, and six check the replay tape.
 
 **Layer 2 — the scene bench.** `npm run bench` plays a scripted car into the real APIs.
 Voices come from AssemblyAI's own TTS (a Voice Agent session whose `greeting` is the line),
@@ -291,10 +309,12 @@ src/lib/sttStream.ts    diarization side-channel (binary PCM frames, agent_conte
 src/lib/attribution.ts  speaker bookkeeping: who is the driver, who asked for what
 src/lib/orderEngine.ts  deterministic ticket: menu resolution, guards, totals
 src/lib/shadowCart.ts   the A/B cart: the same tool calls, no attribution, no guards
+src/lib/tape.ts         the replay tape: what AssemblyAI said, recorded and played back
 src/lib/toolDispatch.ts one place where a tool call becomes a change on the ticket
 src/lib/menu.ts         Burger Lab menu, aliases, keyterms
 src/lib/agentConfig.ts  system prompt, tool schemas, transcription prompt
 src/app/page.tsx        order confirmation board, lane audio, X-ray panel
+public/replays/         the recorded lane behind "Watch a recorded lane"
 bench/                  the virtual car: scenes, TTS cache, runner, reports
 tests/                  the ticket layer, no audio needed
 ```

@@ -16,7 +16,29 @@ export default function Home() {
   const [auditing, setAuditing] = useState(false);
   // A/B: the same tool calls, also booked into a cart with no attribution and no guards.
   const [ab, setAb] = useState(true);
+  const [tapeNote, setTapeNote] = useState<string | null>(null);
   const live = status === "live";
+  const replaying = status === "replaying";
+  const idle = status === "idle" || status === "error";
+  // The first screen explains itself until something has happened on it.
+  const fresh = idle && transcript.length === 0 && !backseat.scenarioRun;
+
+  // Development only: /?record keeps what AssemblyAI says, for a replay anyone can watch.
+  const { recordTape } = backseat;
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("record")) recordTape(true);
+  }, [recordTape]);
+
+  const watchRecorded = async () => {
+    setTapeNote(null);
+    try {
+      const res = await fetch("/replays/lane.json", { cache: "no-store" });
+      if (!res.ok) throw new Error(`no recorded lane in this build (${res.status})`);
+      await backseat.replay(await res.json());
+    } catch (err) {
+      setTapeNote(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   // A model that had no part in building the ticket checks it against the lane audio.
   const runAudit = async () => {
@@ -55,26 +77,63 @@ export default function Home() {
             <p className="text-sm text-slate-400">one order, several people talking</p>
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex flex-wrap items-center gap-3">
             <StatusDot status={status} />
-            {!live ? (
+            {backseat.recording && (
               <button
-                onClick={() => backseat.start()}
-                disabled={status === "starting"}
-                className="rounded-lg bg-amber-400 px-5 py-2 text-sm font-semibold text-black transition hover:bg-amber-300 disabled:opacity-50"
+                onClick={async () => setTapeNote(await backseat.saveTape())}
+                className="rounded-lg border border-red-400/50 px-3 py-2 text-xs font-semibold text-red-200 transition hover:bg-red-400/10"
               >
-                {status === "starting" ? "Opening lane…" : "Pull up to the speaker"}
+                ● recording · save tape
               </button>
-            ) : (
+            )}
+            {replaying ? (
+              <button
+                onClick={backseat.stopReplay}
+                className="rounded-lg border border-white/20 px-5 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+              >
+                Stop replay
+              </button>
+            ) : live ? (
               <button
                 onClick={() => backseat.stop()}
                 className="rounded-lg border border-white/20 px-5 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
               >
                 End call
               </button>
+            ) : (
+              <>
+                {!fresh && (
+                  <button
+                    onClick={watchRecorded}
+                    disabled={!idle}
+                    className="rounded-lg border border-amber-400/50 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-400/10 disabled:opacity-50"
+                  >
+                    ▶ Watch a recorded lane
+                  </button>
+                )}
+                <button
+                  onClick={() => backseat.start()}
+                  disabled={status === "starting" || status === "stopping"}
+                  className="rounded-lg bg-amber-400 px-5 py-2 text-sm font-semibold text-black transition hover:bg-amber-300 disabled:opacity-50"
+                >
+                  {status === "starting" ? "Opening lane…" : "Pull up to the speaker"}
+                </button>
+              </>
             )}
           </div>
         </div>
+
+        {replaying && (
+          <div className="border-t border-sky-400/20 bg-sky-400/5 px-6 py-2 text-sm text-sky-100/90">
+            A recorded lane: what AssemblyAI heard and said is played back as it happened. Who spoke, whose food it is,
+            and both carts are worked out again, live, in this browser.
+          </div>
+        )}
+
+        {tapeNote && (
+          <div className="border-t border-white/10 bg-white/[0.03] px-6 py-2 text-sm text-slate-300">{tapeNote}</div>
+        )}
 
         {backseat.micDenied && !backseat.error && (
           <div className="border-t border-amber-400/20 bg-amber-400/5 px-6 py-2 text-sm text-amber-200/90">
@@ -88,6 +147,30 @@ export default function Home() {
           </div>
         )}
       </header>
+
+      {fresh && (
+        <section className="mx-auto max-w-[1500px] px-4 pt-4">
+          <div className="rounded-2xl border border-amber-400/25 bg-gradient-to-r from-amber-400/[0.08] via-transparent to-transparent px-6 py-5">
+            <h2 className="text-xl font-semibold text-slate-50">A car is not one customer.</h2>
+            <p className="mt-1 max-w-4xl text-slate-300">
+              The driver orders, a kid shouts for a milkshake, the next lane talks into the same microphone. Backseat
+              keeps one cart for all of them — who asked, whose food it is, whether it may change — and shows it next to
+              a cart that books whatever the agent hears.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <button
+                onClick={watchRecorded}
+                className="rounded-lg bg-amber-400 px-5 py-2.5 font-semibold text-black transition hover:bg-amber-300"
+              >
+                ▶ Watch a recorded lane
+              </button>
+              <span className="text-sm text-slate-400">
+                No microphone, no key. Or pull up to the speaker and run the tests below live.
+              </span>
+            </div>
+          </div>
+        </section>
+      )}
 
       <div
         className={`mx-auto grid max-w-[1500px] gap-4 p-4 ${
@@ -130,6 +213,7 @@ function StatusDot({ status }: { status: string }) {
     starting: { text: "connecting", cls: "bg-amber-400 animate-pulse" },
     live: { text: "lane live", cls: "bg-emerald-400 animate-pulse" },
     stopping: { text: "closing", cls: "bg-amber-400" },
+    replaying: { text: "replay", cls: "bg-sky-400 animate-pulse" },
     error: { text: "error", cls: "bg-red-500" },
   };
   const s = map[status] ?? map.idle;

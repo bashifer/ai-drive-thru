@@ -6,14 +6,15 @@ import { RoomEar, guestName, type SpeakerRevision } from "./attribution";
 import { buildSessionConfig, DEFAULT_GREETING, systemPromptFor, type AgentOptions } from "./agentConfig";
 import { menuKeyterms, resolveMenuItem } from "./menu";
 import { OrderEngine, type OrderSnapshot, type Outcome } from "./orderEngine";
-import { clipUrl, type Scenario, type ScenarioCue } from "./scenarios";
+import { SCENARIOS, clipUrl, type Scenario, type ScenarioCue } from "./scenarios";
 import { describeActual, scoreOrder, type Score } from "./scoring";
 import { ShadowCart } from "./shadowCart";
+import { TapeRecorder, decodeVoice, type Tape } from "./tape";
 import { ToolRunner, type QueuedToolCall } from "./toolDispatch";
 import { SttDiarizationClient, type SttEvent, type SttTurn } from "./sttStream";
 import { VoiceAgentClient, type VoiceAgentEvent } from "./voiceAgent";
 
-export type Status = "idle" | "starting" | "live" | "stopping" | "error";
+export type Status = "idle" | "starting" | "live" | "stopping" | "replaying" | "error";
 
 export type TranscriptEntry = {
   id: string;
@@ -59,6 +60,18 @@ export type ScenarioRun = {
   /** The same calls, scored in the cart that trusts all of them. */
   shadow?: { pass: boolean; ticket: string[]; notes: string[] };
 };
+
+/** A scenario that has just started: nothing observed yet. */
+const runningRun = (scenario: Scenario): ScenarioRun => ({
+  scenarioId: scenario.id,
+  title: scenario.title,
+  status: "running",
+  step: 0,
+  steps: scenario.steps.length,
+  ticket: [],
+  expected: scenario.expect.ticket.map((e) => `${e.qty}×${e.item}`),
+  notes: [],
+});
 
 /** Score a finished cart against the ticket a scenario expects, as the bench does. */
 function judge(snap: OrderSnapshot, expect: Scenario["expect"]) {
@@ -116,6 +129,9 @@ export function useBackseat() {
   const sessionUsed = useRef(false);
   const laneOpts = useRef<AgentOptions>({});
   const daypartRef = useRef<"breakfast" | "allday">("allday");
+  /** Records what AssemblyAI says while `/?record` is open (development only). */
+  const recorderRef = useRef<TapeRecorder | null>(null);
+  const replayingRef = useRef(false);
 
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -128,6 +144,7 @@ export function useBackseat() {
   const [primary, setPrimary] = useState<string | null>(null);
   const [scenarioRun, setScenarioRun] = useState<ScenarioRun | null>(null);
   const [micDenied, setMicDenied] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [metrics, setMetrics] = useState<Metrics>({
     replyLatencyMs: null,
     bestLatencyMs: null,
@@ -470,12 +487,17 @@ export function useBackseat() {
       sessionUsed.current = false;
       // The greeting is the agent's turn; nothing scripted talks over it.
       awaitingAgentTurn.current = true;
+      recorderRef.current?.startCar();
 
       agent.onEvent((e) => {
-        if (agentRef.current === agent) handleAgentEvent(e);
+        if (agentRef.current !== agent) return;
+        recorderRef.current?.agent(e);
+        handleAgentEvent(e);
       });
       stt.onEvent((e) => {
-        if (sttRef.current === stt) handleRoomEvent(e);
+        if (sttRef.current !== stt) return;
+        recorderRef.current?.room(e);
+        handleRoomEvent(e);
       });
 
       await Promise.all([
@@ -488,7 +510,10 @@ export function useBackseat() {
           })
           // Word timings count from the stream's first audio, which flows as soon as
           // this socket is open — not when the other ear has finished connecting.
-          .then(() => roomRef.current.start()),
+          .then(() => {
+            roomRef.current.start();
+            recorderRef.current?.roomStarted();
+          }),
       ]);
 
       pushEvent({ ear: "room", label: "diarization stream open", detail: "universal-3-5-pro, speaker_labels", tone: "good" });
@@ -509,6 +534,33 @@ export function useBackseat() {
     await openEars(laneOpts.current);
   }, [clearCar, openEars, pushEvent, releaseEars]);
 
+  /** Both carts against the scenario's expected ticket, on the board and in the X-ray. */
+  const scoreScenario = useCallback(
+    (scenario: Scenario) => {
+      const verdict = judge(orderRef.current.snapshot(), scenario.expect);
+      const naive = judge(shadowRef.current.snapshot(), scenario.expect);
+
+      setScenarioRun({
+        ...runningRun(scenario),
+        status: verdict.pass ? "pass" : "fail",
+        step: scenario.steps.length,
+        ticket: verdict.ticket,
+        notes: verdict.notes,
+        score: verdict.score,
+        shadow: { pass: naive.pass, ticket: naive.ticket, notes: naive.notes },
+      });
+      pushEvent({
+        ear: "engine",
+        label: `regression ${verdict.pass ? "PASS" : "FAIL"}: ${scenario.title}`,
+        detail: `${verdict.notes.join("; ") || "cart matches the expected ticket"} · trusting cart ${
+          naive.pass ? "PASS" : "FAIL"
+        }`,
+        tone: verdict.pass ? "good" : "warn",
+      });
+    },
+    [pushEvent],
+  );
+
   /**
    * Run one scripted car through the live lane and score what lands on the ticket.
    *
@@ -521,18 +573,7 @@ export function useBackseat() {
       const audio = audioRef.current;
       if (!audio || scenarioRunning.current) return;
       scenarioRunning.current = true;
-
-      const expected = scenario.expect.ticket.map((e) => `${e.qty}×${e.item}`);
-      setScenarioRun({
-        scenarioId: scenario.id,
-        title: scenario.title,
-        status: "running",
-        step: 0,
-        steps: scenario.steps.length,
-        ticket: [],
-        expected,
-        notes: [],
-      });
+      setScenarioRun(runningRun(scenario));
 
       // Every scripted car is a new customer, as it is on the bench.
       try {
@@ -545,6 +586,7 @@ export function useBackseat() {
         await failLane(message);
         return;
       }
+      recorderRef.current?.scenario(scenario.id);
       pushEvent({ ear: "room", label: `regression: ${scenario.title}`, detail: scenario.proves });
 
       const startedAt = performance.now();
@@ -574,6 +616,7 @@ export function useBackseat() {
         for (const [index, step] of scenario.steps.entries()) {
           await waitForCue(step.cue);
           setScenarioRun((r) => (r ? { ...r, step: index + 1 } : r));
+          recorderRef.current?.clip(index);
           await audio.playClip({
             id: `${scenario.id}-${index}`,
             label: step.role,
@@ -587,42 +630,19 @@ export function useBackseat() {
         const settleBy = performance.now() + 12000;
         while (performance.now() < settleBy && (awaitingAgentTurn.current || !idle())) await sleep(150);
         await sleep(1200);
-
-        const verdict = judge(orderRef.current.snapshot(), scenario.expect);
-        const naive = judge(shadowRef.current.snapshot(), scenario.expect);
-
-        setScenarioRun({
-          scenarioId: scenario.id,
-          title: scenario.title,
-          status: verdict.pass ? "pass" : "fail",
-          step: scenario.steps.length,
-          steps: scenario.steps.length,
-          ticket: verdict.ticket,
-          expected,
-          notes: verdict.notes,
-          score: verdict.score,
-          shadow: { pass: naive.pass, ticket: naive.ticket, notes: naive.notes },
-        });
-        pushEvent({
-          ear: "engine",
-          label: `regression ${verdict.pass ? "PASS" : "FAIL"}: ${scenario.title}`,
-          detail: `${verdict.notes.join("; ") || "cart matches the expected ticket"} · trusting cart ${
-            naive.pass ? "PASS" : "FAIL"
-          }`,
-          tone: verdict.pass ? "good" : "warn",
-        });
+        scoreScenario(scenario);
       } finally {
         if (scenario.engineNoise) audio.toggleNoise("scenario");
         awaitingAgentTurn.current = false;
         scenarioRunning.current = false;
       }
     },
-    [failLane, nextCar, pushEvent, resetTicket],
+    [failLane, nextCar, pushEvent, resetTicket, scoreScenario],
   );
 
   const start = useCallback(
     async (opts: AgentOptions = {}) => {
-      if (status === "live" || status === "starting") return;
+      if (status === "live" || status === "starting" || status === "replaying") return;
       setStatus("starting");
       setError(null);
       setEvents([]);
@@ -669,6 +689,109 @@ export function useBackseat() {
     audioRef.current = null;
     setStatus("idle");
     setPartial("");
+  }, []);
+
+  /**
+   * Play a recorded lane back through the same handlers, at the moments it happened.
+   *
+   * No microphone and no sockets: the agent's recorded voice and the scripted clips come
+   * out of the speakers, the tool results go nowhere, and everything Backseat decides —
+   * who spoke, whose food, whether the cart may change, what the trusting cart books —
+   * is decided again as it plays.
+   */
+  const replay = useCallback(
+    async (tape: Tape) => {
+      if (status !== "idle" && status !== "error") return;
+      setStatus("replaying");
+      setError(null);
+      setEvents([]);
+      setMicDenied(false);
+      replayingRef.current = true;
+
+      const until = async (at: number) => {
+        while (replayingRef.current && performance.now() < at) await sleep(Math.min(20, at - performance.now()));
+      };
+
+      try {
+        const audio = new AudioEngine();
+        audioRef.current = audio;
+        // Speakers only: nothing is captured and nothing is sent anywhere.
+        await audio.start(() => {}, { microphone: false });
+        await Promise.all(
+          tape.cars.flatMap((car) =>
+            car.events.flatMap((e) => (e.ear === "clip" ? [audio.preload(clipUrl(car.scenarioId, e.step))] : [])),
+          ),
+        );
+
+        for (const [index, car] of tape.cars.entries()) {
+          const scenario = SCENARIOS.find((s) => s.id === car.scenarioId);
+          if (!scenario) continue;
+          if (!replayingRef.current) break;
+
+          clearCar();
+          setScenarioRun(runningRun(scenario));
+          pushEvent({
+            ear: "room",
+            label: `recorded car ${index + 1} of ${tape.cars.length}: ${scenario.title}`,
+            detail: scenario.proves,
+          });
+          if (scenario.engineNoise) audio.toggleNoise("scenario", scenario.engineNoise);
+
+          const t0 = performance.now();
+          roomRef.current.start(t0 + car.roomStartedAt);
+          for (const entry of car.events) {
+            await until(t0 + entry.t);
+            if (!replayingRef.current) break;
+            if (entry.ear === "agent") handleAgentEvent(entry.event);
+            else if (entry.ear === "room") handleRoomEvent(entry.event);
+            else if (entry.ear === "voice") handleAgentEvent({ type: "reply.audio", data: decodeVoice(entry.data) });
+            else {
+              const step = scenario.steps[entry.step];
+              setScenarioRun((r) => (r ? { ...r, step: entry.step + 1 } : r));
+              void audio.playClip({ id: `${scenario.id}-${entry.step}`, label: step.role, url: clipUrl(scenario.id, entry.step), gain: step.gain });
+            }
+          }
+
+          if (scenario.engineNoise) audio.toggleNoise("scenario");
+          if (!replayingRef.current) break;
+          await until(performance.now() + 1200);
+          scoreScenario(scenario);
+          // Time to read the verdict before the next car pulls up.
+          if (index < tape.cars.length - 1) await until(performance.now() + 3500);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        replayingRef.current = false;
+        await audioRef.current?.stop();
+        audioRef.current = null;
+        setStatus("idle");
+      }
+    },
+    [clearCar, handleAgentEvent, handleRoomEvent, pushEvent, scoreScenario, status],
+  );
+
+  const stopReplay = useCallback(() => {
+    replayingRef.current = false;
+  }, []);
+
+  /** Development only: start keeping what AssemblyAI says, car by car. */
+  const recordTape = useCallback((on: boolean) => {
+    recorderRef.current = on ? new TapeRecorder() : null;
+    setRecording(on);
+  }, []);
+
+  /** Development only: write the tape to public/replays/ through /api/tape. */
+  const saveTape = useCallback(async (name = "lane") => {
+    const recorder = recorderRef.current;
+    if (!recorder) return "not recording";
+    const res = await fetch(`/api/tape?name=${encodeURIComponent(name)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(recorder.tape()),
+    });
+    const body = await res.json();
+    return res.ok ? `saved ${body.cars} car(s), ${Math.round(body.bytes / 1024)} KB, to ${body.path}` : String(body.error);
   }, []);
 
   const playClip = useCallback(
@@ -730,6 +853,11 @@ export function useBackseat() {
     micDenied,
     start,
     stop,
+    replay,
+    stopReplay,
+    recording,
+    recordTape,
+    saveTape,
     playClip,
     toggleLoop,
     toggleNoise,
