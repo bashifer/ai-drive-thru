@@ -176,6 +176,9 @@ npm run bench:orders -- --snr 5     # the same 156 over a recorded car
 npm run test:engine                 # the ticket layer, no audio, under a second
 ```
 
+A single scene or a `--limit` sample reports to `bench/cache/runs/`; only a full run replaces
+the published reports in `bench/results/`.
+
 **Real noise.** `npm run fetch:noise` prepares recorded beds — a car interior, street
 traffic and human babble — from Microsoft's [MS-SNSD](https://github.com/microsoft/MS-SNSD)
 noise set (MIT). Scenes that ask for `car` or `babble` use them automatically and the report

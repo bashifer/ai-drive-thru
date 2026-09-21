@@ -573,13 +573,16 @@ async function main() {
     if (!r.pass) for (const f of r.failures) console.log(`      - ${f}`);
   }
 
-  mkdirSync(resolve(process.cwd(), "bench/results"), { recursive: true });
-  const stamp = baseline ? "baseline" : "backseat";
+  // Only a full run replaces the published reports. One scene is a check, not a result,
+  // and must not overwrite the numbers the README quotes.
+  const dir = only ? "bench/cache/runs" : "bench/results";
+  const stamp = `${baseline ? "baseline" : "backseat"}${only ? `-${only}` : ""}`;
+  mkdirSync(resolve(process.cwd(), dir), { recursive: true });
   writeFileSync(
-    resolve(process.cwd(), `bench/results/${stamp}.json`),
+    resolve(process.cwd(), `${dir}/${stamp}.json`),
     JSON.stringify({ label, ranAt: new Date().toISOString(), aggregate: aggregate(results), results }, null, 2),
   );
-  writeFileSync(resolve(process.cwd(), `bench/results/${stamp}.md`), report(results, label));
+  writeFileSync(resolve(process.cwd(), `${dir}/${stamp}.md`), report(results, label));
 
   const agg = aggregate(results);
   console.log(`\n${agg.passed}/${agg.scenes} scenes passed`);
@@ -588,7 +591,7 @@ async function main() {
       agg.slotAccuracy * 100,
     )}% · false adds ${agg.falseAdds} · latency p50 ${agg.latencyP50 ?? "—"} ms`,
   );
-  console.log(`Report: bench/results/${stamp}.md`);
+  console.log(`Report: ${dir}/${stamp}.md`);
   process.exit(0);
 }
 

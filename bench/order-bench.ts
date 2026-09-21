@@ -286,20 +286,22 @@ async function main() {
     "",
   ].join("\n");
 
-  const stamp = snrDb === null ? "orders-clean" : `orders-${bed ? "car" : "synth"}-snr${snrDb}`;
-  mkdirSync(resolve(process.cwd(), "bench/results"), { recursive: true });
-  writeFileSync(
-    resolve(process.cwd(), `bench/results/${stamp}.json`),
-    JSON.stringify({ aggregate: agg, results }, null, 2),
-  );
-  writeFileSync(resolve(process.cwd(), `bench/results/${stamp}.md`), md);
+  // A --limit run is a sample; only the whole set replaces the published report.
+  const partial = chosen.length < clean.length;
+  const dir = partial ? "bench/cache/runs" : "bench/results";
+  const stamp = `${snrDb === null ? "orders-clean" : `orders-${bed ? "car" : "synth"}-snr${snrDb}`}${
+    partial ? `-first${chosen.length}` : ""
+  }`;
+  mkdirSync(resolve(process.cwd(), dir), { recursive: true });
+  writeFileSync(resolve(process.cwd(), `${dir}/${stamp}.json`), JSON.stringify({ aggregate: agg, results }, null, 2));
+  writeFileSync(resolve(process.cwd(), `${dir}/${stamp}.md`), md);
 
   console.log(
     `Order Exact Match ${Math.round(agg.orderExactMatch * 100)}% · slot accuracy ${Math.round(
       agg.slotAccuracy * 100,
     )}% · false adds ${agg.falseAdds} · missing ${agg.missing}${agg.errors ? ` · errors ${agg.errors}` : ""}`,
   );
-  console.log(`Report: bench/results/${stamp}.md`);
+  console.log(`Report: ${dir}/${stamp}.md`);
   process.exit(0);
 }
 
