@@ -154,7 +154,7 @@ word timings and speaker labels. Nothing Backseat decided is on it. The events g
 same handlers at the moments they happened, so attribution, the order engine and both carts
 decide again in the browser as it plays; the session ids in the X-ray are the recorded
 sessions' own. Silences in which nothing happens are cut to a beat, and the agent's voice is
-kept as 16 kHz μ-law to hold the tape to 1.6 MB.
+kept as 16 kHz μ-law to hold the tape under 2 MB.
 
 To record another: `npm run dev`, open `/?record`, run the tests you want on it, then press
 **● recording · save tape**. The page writes `public/replays/lane.json` through a route that
