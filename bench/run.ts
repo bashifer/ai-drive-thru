@@ -4,6 +4,7 @@ import { buildSessionConfig, DEFAULT_GREETING } from "../src/lib/agentConfig";
 import { RoomEar, type SpeakerRevision } from "../src/lib/attribution";
 import { menuKeyterms } from "../src/lib/menu";
 import { OrderEngine } from "../src/lib/orderEngine";
+import { isAudibleReply, speechEndSample } from "../src/lib/replyTiming";
 import { describeActual, percentile, scoreOrder, type Score } from "../src/lib/scoring";
 import type { SttTurn } from "../src/lib/sttStream";
 import { ToolRunner } from "../src/lib/toolDispatch";
@@ -33,10 +34,9 @@ const AGENT_FRAME = (AGENT_RATE * FRAME_MS) / 1000;
 const GREETING_ALLOWANCE_MS = 3000;
 const SILENCE_TO_END_MS = 3500;
 const HARD_CAP_MS = 120000;
-/** Beyond this a reply is a tool round trip, not turn-taking latency. */
-const SLOW_REPLY_MS = 5000;
 
-type Playback = { samples: Int16Array; offset: number; gain: number; utterance: Utterance };
+/** `speechEnd`: the sample just past the line's last word; the clip carries silence after it. */
+type Playback = { samples: Int16Array; offset: number; gain: number; utterance: Utterance; speechEnd: number };
 
 type SceneResult = {
   scene: string;
@@ -60,8 +60,10 @@ type SceneResult = {
   bargeIns: number;
   toolCalls: number;
   corrections: { expected: number; landed: number };
+  /** Last word to first audible word, for replies that needed no tool. */
   latencies: number[];
-  slowReplies: number;
+  /** The same for replies that waited on a tool call first. */
+  toolLatencies: number[];
   transcript: { who: string; text: string }[];
   trace: string[];
   durationMs: number;
@@ -173,18 +175,22 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
   let lastUtteranceEndedAt: number | null = null;
   let awaitingAgentTurn = false;
   let awaitingAudio = false;
+  /** When the last word of any line went out, whoever said it. */
+  let lastWordAt: number | null = null;
+  let toolCalledThisTurn = false;
   /** Tool work in flight keeps the scene open: the agent has not had its say yet. */
   let toolWorkAt = 0;
+  const active: Playback[] = [];
 
   const revisions: SpeakerRevision[] = [];
   let terminated = false;
   const trace: string[] = [];
   const latencies: number[] = [];
+  const toolLatencies: number[] = [];
   const transcript: { who: string; text: string }[] = [];
   let bargeIns = 0;
   let toolCalls = 0;
   let correctionsLanded = 0;
-  let slowReplies = 0;
 
   const flushTools = () => {
     if (lastEventType !== "reply.done" || !pendingResults.length) return;
@@ -211,6 +217,7 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
         break;
       case "input.speech.stopped":
         awaitingAudio = true;
+        toolCalledThisTurn = false;
         break;
       case "reply.started":
         replyStartedAt = performance.now();
@@ -219,20 +226,23 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
         awaitingAgentTurn = false;
         break;
       case "reply.audio": {
-        const bytes = Buffer.from(msg.data as string, "base64").length;
+        const data = msg.data as string;
+        const bytes = Buffer.from(data, "base64").length;
         replyAudioMs += (bytes / 2 / AGENT_RATE) * 1000;
         speechEndsAt = replyStartedAt + replyAudioMs;
-        // Measured from the end of the customer's audio, not from a server event:
-        // speech.stopped and reply.started often arrive in the same network burst.
+        // From the customer's last word to the first frame they could hear. Not from a
+        // server event, and not from the first frame: a reply streams silence while the
+        // agent thinks and for the whole of a tool call (src/lib/replyTiming.ts).
         //
-        // A reply that takes seconds is waiting on a tool round trip or on the agent
-        // deciding the turn is over — real, but not the number "reply latency" means.
-        // Those are counted separately instead of dragging the percentile along.
-        if (awaitingAudio && lastUtteranceEndedAt) {
-          const ms = Math.round(performance.now() - lastUtteranceEndedAt);
-          if (ms <= SLOW_REPLY_MS) latencies.push(ms);
-          else slowReplies++;
+        // Replies that waited on a tool are kept apart: they time the kitchen as well as
+        // the turn-taking. One that arrives while a line still has words to come is an
+        // overlap, not an answer, and is not timed at all.
+        if (awaitingAudio && isAudibleReply(data)) {
           awaitingAudio = false;
+          const midSentence = active.some((p) => p.offset < p.speechEnd);
+          if (lastWordAt !== null && !midSentence) {
+            (toolCalledThisTurn ? toolLatencies : latencies).push(Math.round(performance.now() - lastWordAt));
+          }
         }
         break;
       }
@@ -286,6 +296,7 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
       }
       case "tool.call":
         toolCalls++;
+        toolCalledThisTurn = true;
         toolWorkAt = performance.now();
         queuedCalls.push({
           callId: String(msg.call_id),
@@ -316,7 +327,6 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
 
   // --- the pump ----------------------------------------------------------
   const queue = [...scene.utterances];
-  const active: Playback[] = [];
   let finishedAllAt: number | null = null;
   let previousStartedAt: number | null = null;
 
@@ -351,7 +361,7 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
           if (!shouldStart(u, now)) continue;
           const samples = audio.get(u);
           if (samples) {
-            active.push({ samples, offset: 0, gain: u.gain ?? 1, utterance: u });
+            active.push({ samples, offset: 0, gain: u.gain ?? 1, utterance: u, speechEnd: speechEndSample(samples, SAMPLE_RATE) });
             if (u.cue.kind !== "with_previous") previousStartedAt = now;
           }
           queue.splice(i, 1);
@@ -368,6 +378,8 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
           if (s === undefined) break;
           frame[i] += (s / 32768) * p.gain;
         }
+        // This frame carries the line's last word: the clock for the agent's reply starts.
+        if (p.offset < p.speechEnd && p.offset + AGENT_FRAME >= p.speechEnd) lastWordAt = now;
         p.offset += AGENT_FRAME;
         if (p.offset >= p.samples.length) {
           active.splice(a, 1);
@@ -479,7 +491,7 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
     toolCalls,
     corrections: { expected: scene.expect.corrections ?? 0, landed: correctionsLanded },
     latencies,
-    slowReplies,
+    toolLatencies,
     transcript,
     trace,
     durationMs: Math.round(performance.now() - startedAt),
@@ -492,6 +504,7 @@ function aggregate(results: SceneResult[]) {
   const escalationScenes = results.filter((r) => r.escalationExpected);
   const correctionScenes = results.filter((r) => r.corrections.expected > 0);
   const lat = results.flatMap((r) => r.latencies);
+  const toolLat = results.flatMap((r) => r.toolLatencies);
 
   return {
     scenes: results.length,
@@ -514,7 +527,9 @@ function aggregate(results: SceneResult[]) {
     latencyP50: percentile(lat, 0.5),
     latencyP90: percentile(lat, 0.9),
     replies: lat.length,
-    slowReplies: results.reduce((s, r) => s + r.slowReplies, 0),
+    toolLatencyP50: percentile(toolLat, 0.5),
+    toolLatencyP90: percentile(toolLat, 0.9),
+    toolReplies: toolLat.length,
   };
 }
 
@@ -535,7 +550,8 @@ function report(results: SceneResult[], label: string) {
     `| Unknown speaker rate | ${pct(agg.unknownSpeakerRate)} |`,
     `| Correction success | ${pct(agg.correctionSuccess)} |`,
     `| Escalation recall | ${pct(agg.escalationRecall)} |`,
-    `| Reply latency | p50 ${agg.latencyP50 ?? "—"} ms · p90 ${agg.latencyP90 ?? "—"} ms (${agg.replies} replies) |`,`| Replies waiting on a tool round trip | ${agg.slowReplies} |`,
+    `| Reply latency, last word → first audible word | p50 ${agg.latencyP50 ?? "—"} ms · p90 ${agg.latencyP90 ?? "—"} ms (${agg.replies} replies) |`,
+    `| The same, when the reply waited on a tool call | p50 ${agg.toolLatencyP50 ?? "—"} ms · p90 ${agg.toolLatencyP90 ?? "—"} ms (${agg.toolReplies} replies) |`,
     "",
     "| Scene | Conditions | Result | Cart | Notes |",
     "| --- | --- | --- | --- | --- |",
@@ -589,7 +605,9 @@ async function main() {
   console.log(
     `Order Exact Match ${Math.round(agg.orderExactMatch * 100)}% · slot accuracy ${Math.round(
       agg.slotAccuracy * 100,
-    )}% · false adds ${agg.falseAdds} · latency p50 ${agg.latencyP50 ?? "—"} ms`,
+    )}% · false adds ${agg.falseAdds} · latency p50 ${agg.latencyP50 ?? "—"} ms, after a tool call p50 ${
+      agg.toolLatencyP50 ?? "—"
+    } ms`,
   );
   console.log(`Report: ${dir}/${stamp}.md`);
   process.exit(0);

@@ -6,6 +6,7 @@ import { RoomEar, guestName, type SpeakerRevision } from "./attribution";
 import { buildSessionConfig, DEFAULT_GREETING, systemPromptFor, type AgentOptions } from "./agentConfig";
 import { menuKeyterms, resolveMenuItem } from "./menu";
 import { OrderEngine, type OrderSnapshot, type Outcome } from "./orderEngine";
+import { isAudibleReply } from "./replyTiming";
 import { SCENARIOS, clipUrl, type Scenario, type ScenarioCue } from "./scenarios";
 import { describeActual, scoreOrder, type Score } from "./scoring";
 import { ShadowCart } from "./shadowCart";
@@ -324,8 +325,11 @@ export function useBackseat() {
           break;
 
         case "reply.audio": {
-          audio?.playPcm24((e as { data: string }).data);
-          if (awaitingAudio.current && speechStoppedAt.current) {
+          const data = (e as { data: string }).data;
+          audio?.playPcm24(data);
+          // A reply streams silence until its words are ready — for the whole of a tool
+          // call — so the wait a customer feels ends at the first frame they can hear.
+          if (awaitingAudio.current && speechStoppedAt.current && isAudibleReply(data)) {
             const ms = Math.round(performance.now() - speechStoppedAt.current);
             awaitingAudio.current = false;
             setMetrics((m) => ({
@@ -333,7 +337,12 @@ export function useBackseat() {
               replyLatencyMs: ms,
               bestLatencyMs: m.bestLatencyMs === null ? ms : Math.min(m.bestLatencyMs, ms),
             }));
-            pushEvent({ ear: "agent", label: "first audio out", detail: `${ms} ms after end of turn`, tone: "good" });
+            pushEvent({
+              ear: "agent",
+              label: "first word out",
+              detail: `${ms} ms after end of turn`,
+              tone: ms < 1500 ? "good" : "normal",
+            });
           }
           break;
         }
