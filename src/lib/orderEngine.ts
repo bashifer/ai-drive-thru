@@ -102,6 +102,10 @@ export type OrderSnapshot = {
   daypart: "breakfast" | "allday";
   escalated: boolean;
   finalized: boolean;
+  /** When the ticket went to the kitchen (Date.now()), once the order is closed. */
+  sentAt: number | null;
+  /** Held lines nobody confirmed: left off the kitchen ticket when the order closed. */
+  notSent: { name: string; quantity: number }[];
   driver: string | null;
 };
 
@@ -163,6 +167,8 @@ export class OrderEngine {
   private daypart: "breakfast" | "allday" = "allday";
   private escalated = false;
   private finalized = false;
+  private sentAt: number | null = null;
+  private notSent: { name: string; quantity: number }[] = [];
   private guards: boolean;
   private speakerAware: boolean;
   /** The voice the agent is in conversation with. */
@@ -191,6 +197,8 @@ export class OrderEngine {
       daypart: this.daypart,
       escalated: this.escalated,
       finalized: this.finalized,
+      sentAt: this.sentAt,
+      notSent: [...this.notSent],
       driver: this.driver,
     };
   }
@@ -204,6 +212,8 @@ export class OrderEngine {
     this.flags = [];
     this.escalated = false;
     this.finalized = false;
+    this.sentAt = null;
+    this.notSent = [];
     this.driver = null;
     this.driverConfident = false;
     this.repeatQuestion = null;
@@ -779,9 +789,11 @@ export class OrderEngine {
     if (dropped.length) {
       this.lines = this.lines.filter((l) => l.status !== "pending");
       for (const l of dropped) this.flag("side_voice", `Dropped unconfirmed ${l.quantity} × ${l.name}`);
+      this.notSent.push(...dropped.map((l) => ({ name: l.name, quantity: l.quantity })));
     }
 
     this.finalized = true;
+    this.sentAt ??= Date.now();
     const settled = this.snapshot();
     if (dropped.length) {
       return {

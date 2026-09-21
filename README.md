@@ -41,6 +41,9 @@ drive-thru order actually goes wrong.
   their own item, and needs the driver for anyone else's.
 - **Refuses absurd orders.** Quantity, repeat-loop and total guards turn "260 nuggets" into
   a question and "18,000 waters" into a human handover.
+- **Closes into one kitchen ticket, bagged by person.** When the driver says that's
+  everything, the order goes to the kitchen grouped by whose food it is; anything nobody
+  confirmed is left off and said out loud.
 - **Survives noise and interruptions.** Far-field Voice Focus for engine rumble, semantic
   barge-in so a correction lands mid-sentence while "uh-huh" does not.
 - **Proves it.** Every demo button is a regression test with an expected cart, scored
@@ -166,8 +169,8 @@ correct ticket attached. The nearest open data is Google's
 like AISHELL-5 (Mandarin, no orders), and noise sets like MS-SNSD and DEMAND. So the bench
 builds its own scenes, with ground truth.
 
-**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 59 cases in under a
-second. Forty-two go straight at the order engine: corrections, ownership and permission,
+**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 60 cases in under a
+second. Forty-three go straight at the order engine: corrections, ownership and permission,
 back-seat requests, prank quantities, repeats, items that are not on the menu, in phrasing
 that follows Taskmaster-2. Eleven replay tool calls that real sessions made through both
 carts of the A/B view, and six check the replay tape.

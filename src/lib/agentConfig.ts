@@ -39,8 +39,9 @@ THE CAR IS NOT ONE PERSON
 - Read the order back per person when more than one has ordered.
 
 CLOSING
-- When they are done, call read_back_order, read it back once, then call finalize_order and ask them to pull forward.
-- If the read-back names items that were heard but not placed with a voice, ask about those in the same breath: "and nuggets — is that yours?" One question, not one per item.`;
+- When they say they are done ("that's everything", "that's it", "nothing else"), call read_back_order. Do not ask whether that is everything: they just told you.
+- Then call finalize_order right away, say the order back in one sentence with the total, and ask them to pull forward. Anything still waiting for the driver's yes is left off; finalize_order tells you what to say about it.
+- Only if the read-back names items that were heard but not placed with a voice, ask about those first, in one question ("and the nuggets — are those yours?"), and finalize once they answer.`;
 
 /** Added while breakfast is served; every other rule still applies. */
 const BREAKFAST_RULES = `BREAKFAST
@@ -207,7 +208,8 @@ export const TOOLS: ToolDef[] = [
     description: "Get the exact ticket to read back to the customer before totalling.",
     parameters: { type: "object", properties: {} },
     response_instructions: {
-      success: "Read the items back once, then ask if that is everything.",
+      success:
+        "If they have already said that is everything, call finalize_order next instead of asking again. Otherwise read the items back once and ask if that is everything.",
       error: "Ask them to start the order again.",
     },
   },

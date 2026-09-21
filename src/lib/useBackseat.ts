@@ -102,6 +102,8 @@ const EMPTY_ORDER: OrderSnapshot = {
   daypart: "allday",
   escalated: false,
   finalized: false,
+  sentAt: null,
+  notSent: [],
   driver: null,
 };
 

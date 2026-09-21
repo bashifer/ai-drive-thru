@@ -257,7 +257,7 @@ function OrderBoard({
       <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-300">Order confirmation board</h2>
         <div className="flex items-center gap-2">
-          {!shadow && order.escalated && <CrewCalled />}
+          {!shadow && <TicketState snapshot={order} />}
           <button
             onClick={onToggleAb}
             aria-pressed={shadow !== null}
@@ -294,7 +294,7 @@ function OrderBoard({
                 title="Single ear, no guards"
                 note="books every call it is given"
                 titleClass="text-rose-300"
-                escalated={shadow.escalated}
+                snapshot={shadow}
               />
             }
             snapshot={shadow}
@@ -310,7 +310,7 @@ function OrderBoard({
                 title="Backseat"
                 note="two ears, guards on"
                 titleClass="text-emerald-300"
-                escalated={order.escalated}
+                snapshot={order}
               />
             ) : undefined
           }
@@ -402,27 +402,41 @@ function ReceiptHeading({
   title,
   note,
   titleClass,
-  escalated,
+  snapshot,
 }: {
   title: string;
   note: string;
   titleClass: string;
-  escalated: boolean;
+  snapshot: OrderSnapshot;
 }) {
   return (
-    <div className="mb-3 flex items-start justify-between gap-2">
-      <div>
-        <div className={`text-xs font-semibold uppercase tracking-widest ${titleClass}`}>{title}</div>
-        <div className="text-[11px] text-slate-500">{note}</div>
+    <div className="mb-3 flex flex-wrap items-start justify-between gap-x-2 gap-y-1.5">
+      <div className="shrink-0">
+        <div className={`whitespace-nowrap text-xs font-semibold uppercase tracking-widest ${titleClass}`}>{title}</div>
+        <div className="whitespace-nowrap text-[11px] text-slate-500">{note}</div>
       </div>
-      {escalated && <CrewCalled />}
+      <TicketState snapshot={snapshot} />
     </div>
   );
 }
 
-function CrewCalled() {
+const clock = (at: number) =>
+  new Date(at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+/** Where the ticket went: to a person on the crew, or to the kitchen. */
+function TicketState({ snapshot }: { snapshot: OrderSnapshot }) {
+  if (snapshot.escalated) {
+    return (
+      <span className="shrink-0 rounded-full bg-red-500/20 px-3 py-1 text-xs font-semibold text-red-200">
+        crew called
+      </span>
+    );
+  }
+  if (snapshot.sentAt === null) return null;
   return (
-    <span className="shrink-0 rounded-full bg-red-500/20 px-3 py-1 text-xs font-semibold text-red-200">crew called</span>
+    <span className="shrink-0 rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-200">
+      sent to kitchen · {clock(snapshot.sentAt)}
+    </span>
   );
 }
 
@@ -510,6 +524,12 @@ function BackseatLines({ order }: { order: OrderSnapshot }) {
           </div>
         );
       })}
+      {order.notSent.length > 0 && (
+        <p className="text-xs text-slate-400">
+          Not sent to the kitchen: {order.notSent.map((l) => `${l.quantity} × ${l.name}`).join(", ")} — nobody
+          confirmed {order.notSent.length > 1 ? "them" : "it"}.
+        </p>
+      )}
     </>
   );
 }

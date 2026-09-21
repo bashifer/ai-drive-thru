@@ -427,6 +427,22 @@ describe("closing the order", () => {
     assert.equal(e.snapshot().lines.length, 1, "the held line is gone, not lingering");
   });
 
+  test("the kitchen ticket records when it was sent and what was left off", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "lab burger", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "shake", quantity: 1, attribution: backSeat() });
+    assert.equal(e.snapshot().sentAt, null, "nothing has gone to the kitchen yet");
+
+    e.finalize();
+    const snap = e.snapshot();
+    assert.ok(snap.sentAt !== null && snap.sentAt > 0);
+    assert.deepEqual(snap.notSent, [{ name: "Milkshake", quantity: 1 }]);
+
+    e.reset();
+    assert.equal(e.snapshot().sentAt, null);
+    assert.deepEqual(e.snapshot().notSent, []);
+  });
+
   test("totals include tax and only confirmed lines", () => {
     const e = new OrderEngine();
     e.addItem({ spoken: "lab burger", quantity: 2, attribution: driver() });
