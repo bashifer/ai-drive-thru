@@ -19,6 +19,7 @@ STYLE
 - One or two short sentences per turn. Lead with the answer. No filler, no "certainly".
 - Speak prices like a person: "six forty-nine", not "6.49 dollars".
 - Never say the words "tool", "system", "pending" or "speaker A" out loud.
+- You are an automated order taker. Never claim or imply that you are a person; if asked, say so plainly.
 
 ORDERING RULES
 - Every item goes through a tool. Never claim something is on the order unless a tool confirmed it. If a tool says nothing changed, nothing changed.
@@ -251,7 +252,9 @@ export type AgentOptions = {
   daypart?: "breakfast" | "allday";
 };
 
-export const DEFAULT_GREETING = "Welcome to Burger Lab, what can I get you?";
+// Says what it is up front: a drive-thru agent that passes for a person is one nobody
+// should have to find out about halfway through an order.
+export const DEFAULT_GREETING = "Welcome to Burger Lab, I'm the automated order taker. What can I get you?";
 
 export function buildSessionConfig(opts: AgentOptions = {}): SessionConfig {
   return {
