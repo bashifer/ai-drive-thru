@@ -119,6 +119,23 @@ Clips are mixed in *after* the browser's echo canceller, so the models hear them
 **a declined microphone does not stop anything**: the lane falls back to injected audio and
 every test still runs. One person, one laptop, no second voice required.
 
+### A/B: the same calls, two carts
+
+The order board shows two receipts. Every tool call the agent makes is booked twice: into
+Backseat's ticket, and into a shadow cart built exactly like the bench's `--baseline` — one
+ear, every voice treated as the driver, no guards. Only Backseat's answers go back to the
+agent, so it is one conversation with two bookkeepers. Run **Two hundred and sixty nuggets**
+and the left receipt reads `260 × Chicken Nuggets`, $1,207.42 with tax, while the right one is
+empty with the crew called. Every line the left cart booked and Backseat did not is marked,
+and each regression test scores both carts.
+
+Where Backseat's own question shaped the conversation, the shadow gets the benefit of the
+doubt. A driver's "no" to a held request takes it off the shadow too, as the `remove_item` a
+single-ear agent would have made; a "yes" changes nothing, because the shadow booked the item
+on the spot. The gap on screen is therefore a lower bound. The baseline column in the results
+below measures the other half: the same audio through a separate single-ear conversation,
+steered by its own answers.
+
 ## Testing: a virtual car, not a microphone
 
 There is no public corpus of drive-thru orders with a kid shouting over the driver and a
@@ -128,9 +145,11 @@ correct ticket attached. The nearest open data is Google's
 like AISHELL-5 (Mandarin, no orders), and noise sets like MS-SNSD and DEMAND. So the bench
 builds its own scenes, with ground truth.
 
-**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 36 cases against the
-order engine in under a second: corrections, ownership and permission, back-seat requests,
-prank quantities, repeats, items that are not on the menu. Phrasing follows Taskmaster-2.
+**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 43 cases in under a
+second. Thirty-six go straight at the order engine: corrections, ownership and permission,
+back-seat requests, prank quantities, repeats, items that are not on the menu, in phrasing
+that follows Taskmaster-2. Seven replay tool calls that real sessions made through both
+carts of the A/B view.
 
 **Layer 2 — the scene bench.** `npm run bench` plays a scripted car into the real APIs.
 Voices come from AssemblyAI's own TTS (a Voice Agent session whose `greeting` is the line),
@@ -258,6 +277,7 @@ src/lib/voiceAgent.ts   Voice Agent API client (events, tools, mid-session updat
 src/lib/sttStream.ts    diarization side-channel (binary PCM frames, agent_context)
 src/lib/attribution.ts  speaker bookkeeping: who is the driver, who asked for what
 src/lib/orderEngine.ts  deterministic ticket: menu resolution, guards, totals
+src/lib/shadowCart.ts   the A/B cart: the same tool calls, no attribution, no guards
 src/lib/toolDispatch.ts one place where a tool call becomes a change on the ticket
 src/lib/menu.ts         Burger Lab menu, aliases, keyterms
 src/lib/agentConfig.ts  system prompt, tool schemas, transcription prompt

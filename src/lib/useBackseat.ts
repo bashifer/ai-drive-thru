@@ -8,6 +8,7 @@ import { menuKeyterms, resolveMenuItem } from "./menu";
 import { OrderEngine, type OrderSnapshot, type Outcome } from "./orderEngine";
 import { clipUrl, type Scenario, type ScenarioCue } from "./scenarios";
 import { describeActual, scoreOrder, type Score } from "./scoring";
+import { ShadowCart } from "./shadowCart";
 import { ToolRunner, type QueuedToolCall } from "./toolDispatch";
 import { SttDiarizationClient, type SttTurn } from "./sttStream";
 import { VoiceAgentClient, type VoiceAgentEvent } from "./voiceAgent";
@@ -52,7 +53,24 @@ export type ScenarioRun = {
   expected: string[];
   notes: string[];
   score?: Score;
+  /** The same calls, scored in the cart that trusts all of them. */
+  shadow?: { pass: boolean; ticket: string[]; notes: string[] };
 };
+
+/** Score a finished cart against the ticket a scenario expects, as the bench does. */
+function judge(snap: OrderSnapshot, expect: Scenario["expect"]) {
+  const confirmed = snap.lines.filter((l) => l.status === "confirmed");
+  const score = scoreOrder(confirmed, expect.ticket, snap.driver);
+  const notes = [...score.notes];
+
+  for (const forbidden of expect.mustNotContain ?? []) {
+    if (confirmed.some((l) => l.name === forbidden)) notes.push(`must not contain ${forbidden}`);
+  }
+  if (expect.escalated !== undefined && snap.escalated !== expect.escalated) {
+    notes.push(`escalated: got ${snap.escalated}, expected ${expect.escalated}`);
+  }
+  return { pass: notes.length === 0, notes, score, ticket: confirmed.map(describeActual) };
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -77,6 +95,8 @@ export function useBackseat() {
   const sttRef = useRef<SttDiarizationClient | null>(null);
   const roomRef = useRef<RoomEar>(new RoomEar());
   const orderRef = useRef<OrderEngine>(new OrderEngine());
+  /** A/B: the same tool calls, booked into a cart with no attribution and no guards. */
+  const shadowRef = useRef<ShadowCart>(new ShadowCart());
 
   const turnStartedAt = useRef<number>(0);
   const speechStoppedAt = useRef<number | null>(null);
@@ -93,6 +113,7 @@ export function useBackseat() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<OrderSnapshot>(EMPTY_ORDER);
+  const [shadowOrder, setShadowOrder] = useState<OrderSnapshot>(EMPTY_ORDER);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [partial, setPartial] = useState("");
   const [events, setEvents] = useState<XRayEvent[]>([]);
@@ -119,6 +140,7 @@ export function useBackseat() {
   const syncOrder = useCallback(() => {
     const snap = orderRef.current.snapshot();
     setOrder(snap);
+    setShadowOrder(shadowRef.current.snapshot());
     setMetrics((m) => ({ ...m, heldItems: snap.lines.filter((l) => l.status === "pending").length }));
   }, []);
 
@@ -141,7 +163,11 @@ export function useBackseat() {
     if (call.name === "add_item" && typeof call.args.item === "string") {
       askedAbout.current.add(call.args.item.toLowerCase());
     }
-    const runner = (toolRunner.current ??= new ToolRunner(orderRef.current, { room: roomRef.current }));
+    const runner = (toolRunner.current ??= new ToolRunner(
+      orderRef.current,
+      { room: roomRef.current },
+      shadowRef.current,
+    ));
     return runner.run(call, resultReachesAgent);
   }, []);
 
@@ -344,6 +370,7 @@ export function useBackseat() {
       scenarioRunning.current = true;
 
       orderRef.current.reset();
+      shadowRef.current.reset();
       askedAbout.current.clear();
       queuedCalls.current = [];
       toolRunner.current = null;
@@ -403,34 +430,28 @@ export function useBackseat() {
         while (performance.now() < settleBy && (awaitingAgentTurn.current || !idle())) await sleep(150);
         await sleep(1200);
 
-        const snap = orderRef.current.snapshot();
-        const confirmed = snap.lines.filter((l) => l.status === "confirmed");
-        const score = scoreOrder(confirmed, scenario.expect.ticket, snap.driver);
-        const notes = [...score.notes];
-
-        for (const forbidden of scenario.expect.mustNotContain ?? []) {
-          if (confirmed.some((l) => l.name === forbidden)) notes.push(`must not contain ${forbidden}`);
-        }
-        if (scenario.expect.escalated !== undefined && snap.escalated !== scenario.expect.escalated) {
-          notes.push(`escalated: got ${snap.escalated}, expected ${scenario.expect.escalated}`);
-        }
+        const verdict = judge(orderRef.current.snapshot(), scenario.expect);
+        const naive = judge(shadowRef.current.snapshot(), scenario.expect);
 
         setScenarioRun({
           scenarioId: scenario.id,
           title: scenario.title,
-          status: notes.length ? "fail" : "pass",
+          status: verdict.pass ? "pass" : "fail",
           step: scenario.steps.length,
           steps: scenario.steps.length,
-          ticket: confirmed.map(describeActual),
+          ticket: verdict.ticket,
           expected,
-          notes,
-          score,
+          notes: verdict.notes,
+          score: verdict.score,
+          shadow: { pass: naive.pass, ticket: naive.ticket, notes: naive.notes },
         });
         pushEvent({
           ear: "engine",
-          label: `regression ${notes.length ? "FAIL" : "PASS"}: ${scenario.title}`,
-          detail: notes.join("; ") || "cart matches the expected ticket",
-          tone: notes.length ? "warn" : "good",
+          label: `regression ${verdict.pass ? "PASS" : "FAIL"}: ${scenario.title}`,
+          detail: `${verdict.notes.join("; ") || "cart matches the expected ticket"} · trusting cart ${
+            naive.pass ? "PASS" : "FAIL"
+          }`,
+          tone: verdict.pass ? "good" : "warn",
         });
       } finally {
         if (scenario.engineNoise) audio.toggleNoise("scenario");
@@ -452,6 +473,7 @@ export function useBackseat() {
       toolRunner.current = null;
       roomRef.current.start();
       orderRef.current.reset();
+      shadowRef.current.reset();
       setTranscript([]);
       setEvents([]);
       syncOrder();
@@ -564,6 +586,7 @@ export function useBackseat() {
   const setDaypart = useCallback(
     (daypart: "breakfast" | "allday") => {
       orderRef.current.setDaypart(daypart);
+      shadowRef.current.setDaypart(daypart);
       syncOrder();
       // Keyterms and the prompt are mutable mid-session: the lane switches menus
       // without dropping the call.
@@ -583,6 +606,7 @@ export function useBackseat() {
     status,
     error,
     order,
+    shadowOrder,
     transcript,
     partial,
     events,

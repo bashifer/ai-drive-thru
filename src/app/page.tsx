@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { guestName } from "@/lib/attribution";
-import type { OrderLine } from "@/lib/orderEngine";
+import { DRIVER, UNASSIGNED, ownerLabel, type OrderLine, type OrderSnapshot } from "@/lib/orderEngine";
+import { describeActual } from "@/lib/scoring";
 import { useBackseat, type ScenarioRun, type XRayEvent } from "@/lib/useBackseat";
 
 import { SCENARIOS } from "@/lib/scenarios";
@@ -13,6 +14,8 @@ export default function Home() {
   const [engineNoise, setEngineNoise] = useState(false);
   const [audit, setAudit] = useState<Audit | null>(null);
   const [auditing, setAuditing] = useState(false);
+  // A/B: the same tool calls, also booked into a cart with no attribution and no guards.
+  const [ab, setAb] = useState(true);
   const live = status === "live";
 
   // A model that had no part in building the ticket checks it against the lane audio.
@@ -86,10 +89,17 @@ export default function Home() {
         )}
       </header>
 
-      <div className="mx-auto grid max-w-[1500px] gap-4 p-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.95fr)]">
+      <div
+        className={`mx-auto grid max-w-[1500px] gap-4 p-4 ${
+          ab
+            ? "lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,0.9fr)]"
+            : "lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.95fr)]"
+        }`}
+      >
         <OrderBoard
           order={order}
-          primary={primary}
+          shadow={ab ? backseat.shadowOrder : null}
+          onToggleAb={() => setAb((on) => !on)}
           audit={audit}
           auditing={auditing}
           canAudit={transcript.length > 1}
@@ -99,6 +109,7 @@ export default function Home() {
           <TranscriptPane transcript={transcript} partial={partial} primary={primary} />
           <RegressionPanel
             live={live}
+            ab={ab}
             run={backseat.scenarioRun}
             onRun={backseat.runScenario}
             engineNoise={engineNoise}
@@ -138,86 +149,91 @@ type Audit = {
 
 function OrderBoard({
   order,
-  primary,
+  shadow,
+  onToggleAb,
   audit,
   auditing,
   canAudit,
   onAudit,
 }: {
-  order: ReturnType<typeof useBackseat>["order"];
-  primary: string | null;
+  order: OrderSnapshot;
+  /** The cart that trusts every call — present when A/B mode is on. */
+  shadow: OrderSnapshot | null;
+  onToggleAb: () => void;
   audit: Audit | null;
   auditing: boolean;
   canAudit: boolean;
   onAudit: () => void;
 }) {
-  const groups = new Map<string, OrderLine[]>();
-  for (const line of order.lines) {
-    const list = groups.get(line.owner) ?? [];
-    list.push(line);
-    groups.set(line.owner, list);
-  }
+  const gap = shadow ? compareCarts(shadow, order) : null;
 
   return (
     <section className="flex flex-col rounded-2xl border border-white/10 bg-[#0b0f17]">
-      <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-3">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-300">Order confirmation board</h2>
-        {order.escalated && (
-          <span className="rounded-full bg-red-500/20 px-3 py-1 text-xs font-semibold text-red-200">crew called</span>
-        )}
+        <div className="flex items-center gap-2">
+          {!shadow && order.escalated && <CrewCalled />}
+          <button
+            onClick={onToggleAb}
+            aria-pressed={shadow !== null}
+            title="Book the same tool calls into a second cart that has no attribution and no guards"
+            className={`rounded-md border px-2 py-1 text-[11px] font-semibold transition ${
+              shadow ? "border-rose-400/50 bg-rose-400/10 text-rose-200" : "border-white/15 text-slate-300 hover:bg-white/5"
+            }`}
+          >
+            A/B {shadow ? "on" : "off"}
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
-        {order.lines.length === 0 && (
-          <p className="text-sm text-slate-500">
-            Nothing on the ticket. Lines appear only after a tool call, grouped by whose food they are.
+      {shadow && gap && (
+        <div className="border-b border-white/10 px-5 py-2 text-xs">
+          <p className="text-slate-400">
+            Same tool calls, two carts. Only Backseat answers the agent; the cart on the left books every call it is
+            given.
           </p>
-        )}
+          {gap.lines.length > 0 && (
+            <p className="mt-1 font-medium text-rose-300">
+              Difference: {gap.lines.map((l) => `${l.quantity} × ${l.name}`).join(", ")}
+              {gap.money > 0 && ` · $${money(gap.money)}`}
+            </p>
+          )}
+        </div>
+      )}
 
-        {Array.from(groups.entries()).map(([speaker, lines]) => (
-          <div key={speaker}>
-            <div className="mb-2 flex items-center gap-2">
-              <span
-                className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
-                  primary && speaker === primary
-                    ? "bg-emerald-400/15 text-emerald-300"
-                    : "bg-sky-400/15 text-sky-300"
-                }`}
-              >
-                {guestName(speaker, primary)}
-              </span>
-            </div>
-            <ul className="space-y-1.5">
-              {lines.map((line) => (
-                <li
-                  key={line.lineId}
-                  className={`flex items-baseline justify-between gap-3 rounded-lg px-3 py-2 ${
-                    line.status === "pending" ? "border border-amber-400/30 bg-amber-400/5" : "bg-white/[0.03]"
-                  }`}
-                >
-                  <div>
-                    <div className="font-medium">
-                      <span className="text-slate-400">{line.quantity} ×</span> {line.size ? `${line.size} ` : ""}
-                      {line.name}
-                    </div>
-                    {line.modifiers.length > 0 && (
-                      <div className="text-xs text-slate-400">{line.modifiers.join(", ")}</div>
-                    )}
-                    {line.status === "pending" && (
-                      <div className="mt-0.5 text-xs text-amber-300">held — waiting for the driver to confirm</div>
-                    )}
-                    {line.status === "confirmed" && line.unverified && (
-                      <div className="mt-0.5 text-xs text-slate-500">heard, but no voice match yet</div>
-                    )}
-                  </div>
-                  <span className="shrink-0 tabular-nums text-slate-300">
-                    ${(line.unitPrice * line.quantity).toFixed(2)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+      <div className={`grid gap-5 px-5 py-4 ${shadow ? "sm:grid-cols-2" : ""}`}>
+        {shadow && gap && (
+          <Receipt
+            heading={
+              <ReceiptHeading
+                title="Single ear, no guards"
+                note="books every call it is given"
+                titleClass="text-rose-300"
+                escalated={shadow.escalated}
+              />
+            }
+            snapshot={shadow}
+            totalClass={gap.money > 0 ? "text-rose-300" : "text-slate-200"}
+          >
+            <TrustingLines lines={shadow.lines} tags={gap.tags} />
+          </Receipt>
+        )}
+        <Receipt
+          heading={
+            shadow ? (
+              <ReceiptHeading
+                title="Backseat"
+                note="two ears, guards on"
+                titleClass="text-emerald-300"
+                escalated={order.escalated}
+              />
+            ) : undefined
+          }
+          snapshot={order}
+          totalClass="text-amber-300"
+        >
+          <BackseatLines order={order} />
+        </Receipt>
       </div>
 
       {(order.flags.length > 0 || audit || canAudit) && (
@@ -264,15 +280,208 @@ function OrderBoard({
         </div>
       )}
 
-      <div className="border-t border-white/10 px-5 py-4">
-        <Row label="Subtotal" value={order.subtotal} />
-        <Row label="Tax" value={order.tax} />
+    </section>
+  );
+}
+
+const money = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * Which lines of the trusting cart Backseat did not book: held for the driver, or never
+ * on its ticket at all. Lines are matched on what the kitchen reads — item, quantity,
+ * size, modifiers — because the trusting cart has no idea whose food anything is.
+ */
+function compareCarts(trusting: OrderSnapshot, real: OrderSnapshot) {
+  const tally = (lines: OrderLine[]) => {
+    const counts = new Map<string, number>();
+    for (const line of lines) counts.set(describeActual(line), (counts.get(describeActual(line)) ?? 0) + 1);
+    return counts;
+  };
+  const take = (counts: Map<string, number>, key: string) => {
+    const n = counts.get(key) ?? 0;
+    if (n > 0) counts.set(key, n - 1);
+    return n > 0;
+  };
+
+  const booked = tally(real.lines.filter((l) => l.status === "confirmed"));
+  const held = tally(real.lines.filter((l) => l.status === "pending"));
+  const tags = new Map<string, "held" | "absent">();
+  for (const line of trusting.lines) {
+    const key = describeActual(line);
+    if (take(booked, key)) continue;
+    tags.set(line.lineId, take(held, key) ? "held" : "absent");
+  }
+
+  return {
+    tags,
+    lines: trusting.lines.filter((l) => tags.has(l.lineId)),
+    money: +(trusting.total - real.total).toFixed(2),
+  };
+}
+
+function Receipt({
+  heading,
+  snapshot,
+  totalClass,
+  children,
+}: {
+  heading?: ReactNode;
+  snapshot: OrderSnapshot;
+  totalClass: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col">
+      {heading}
+      <div className="flex-1 space-y-5">{children}</div>
+      <div className="mt-4 border-t border-white/10 pt-3">
+        <Row label="Subtotal" value={snapshot.subtotal} />
+        <Row label="Tax" value={snapshot.tax} />
         <div className="mt-2 flex items-baseline justify-between text-xl font-semibold">
           <span>Total</span>
-          <span className="tabular-nums text-amber-300">${order.total.toFixed(2)}</span>
+          <span className={`tabular-nums ${totalClass}`}>${money(snapshot.total)}</span>
         </div>
       </div>
-    </section>
+    </div>
+  );
+}
+
+function ReceiptHeading({
+  title,
+  note,
+  titleClass,
+  escalated,
+}: {
+  title: string;
+  note: string;
+  titleClass: string;
+  escalated: boolean;
+}) {
+  return (
+    <div className="mb-3 flex items-start justify-between gap-2">
+      <div>
+        <div className={`text-xs font-semibold uppercase tracking-widest ${titleClass}`}>{title}</div>
+        <div className="text-[11px] text-slate-500">{note}</div>
+      </div>
+      {escalated && <CrewCalled />}
+    </div>
+  );
+}
+
+function CrewCalled() {
+  return (
+    <span className="shrink-0 rounded-full bg-red-500/20 px-3 py-1 text-xs font-semibold text-red-200">crew called</span>
+  );
+}
+
+function LineText({ line }: { line: OrderLine }) {
+  return (
+    <>
+      <div className="font-medium">
+        <span className="text-slate-400">{line.quantity} ×</span> {line.size ? `${line.size} ` : ""}
+        {line.name}
+      </div>
+      {line.modifiers.length > 0 && <div className="text-xs text-slate-400">{line.modifiers.join(", ")}</div>}
+    </>
+  );
+}
+
+function LinePrice({ line }: { line: OrderLine }) {
+  return <span className="shrink-0 tabular-nums text-slate-300">${money(line.unitPrice * line.quantity)}</span>;
+}
+
+/** Backseat's ticket, grouped the way the bag is packed. */
+function BackseatLines({ order }: { order: OrderSnapshot }) {
+  if (order.lines.length === 0) {
+    return (
+      <p className="text-sm text-slate-500">
+        Nothing on the ticket. Lines appear only after a tool call, grouped by whose food they are.
+      </p>
+    );
+  }
+
+  const groups = new Map<string, OrderLine[]>();
+  for (const line of order.lines) {
+    const list = groups.get(line.owner) ?? [];
+    list.push(line);
+    groups.set(line.owner, list);
+  }
+
+  return (
+    <>
+      {Array.from(groups.entries()).map(([owner, lines]) => (
+        <div key={owner}>
+          <div className="mb-2 flex items-center gap-2">
+            <span
+              className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
+                owner === DRIVER || owner === order.driver
+                  ? "bg-emerald-400/15 text-emerald-300"
+                  : owner === UNASSIGNED
+                    ? "bg-slate-400/15 text-slate-300"
+                    : "bg-sky-400/15 text-sky-300"
+              }`}
+            >
+              {ownerLabel(owner, order.driver)}
+            </span>
+          </div>
+          <ul className="space-y-1.5">
+            {lines.map((line) => (
+              <li
+                key={line.lineId}
+                className={`flex items-baseline justify-between gap-3 rounded-lg px-3 py-2 ${
+                  line.status === "pending" ? "border border-amber-400/30 bg-amber-400/5" : "bg-white/[0.03]"
+                }`}
+              >
+                <div>
+                  <LineText line={line} />
+                  {line.status === "pending" && (
+                    <div className="mt-0.5 text-xs text-amber-300">held — waiting for the driver to confirm</div>
+                  )}
+                  {line.status === "confirmed" && line.unverified && (
+                    <div className="mt-0.5 text-xs text-slate-500">heard, but no voice match yet</div>
+                  )}
+                </div>
+                <LinePrice line={line} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </>
+  );
+}
+
+/** The trusting cart: one customer, every call booked, nothing held. */
+function TrustingLines({ lines, tags }: { lines: OrderLine[]; tags: Map<string, "held" | "absent"> }) {
+  if (lines.length === 0) return <p className="text-sm text-slate-500">Nothing booked.</p>;
+
+  return (
+    <ul className="space-y-1.5">
+      {lines.map((line) => {
+        const tag = tags.get(line.lineId);
+        return (
+          <li
+            key={line.lineId}
+            className={`flex items-baseline justify-between gap-3 rounded-lg px-3 py-2 ${
+              tag === "absent"
+                ? "border border-rose-400/40 bg-rose-400/10"
+                : tag === "held"
+                  ? "border border-amber-400/30 bg-amber-400/5"
+                  : "bg-white/[0.03]"
+            }`}
+          >
+            <div>
+              <LineText line={line} />
+              {tag === "absent" && <div className="mt-0.5 text-xs text-rose-300">not on Backseat&apos;s ticket</div>}
+              {tag === "held" && (
+                <div className="mt-0.5 text-xs text-amber-300">Backseat is holding this for the driver</div>
+              )}
+            </div>
+            <LinePrice line={line} />
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -280,7 +489,7 @@ function Row({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-baseline justify-between text-sm text-slate-400">
       <span>{label}</span>
-      <span className="tabular-nums">${value.toFixed(2)}</span>
+      <span className="tabular-nums">${money(value)}</span>
     </div>
   );
 }
@@ -326,6 +535,7 @@ function TranscriptPane({
 
 function RegressionPanel({
   live,
+  ab,
   run,
   onRun,
   engineNoise,
@@ -333,6 +543,7 @@ function RegressionPanel({
   onDaypart,
 }: {
   live: boolean;
+  ab: boolean;
   run: ScenarioRun | null;
   onRun: (scenario: (typeof SCENARIOS)[number]) => void;
   engineNoise: boolean;
@@ -394,6 +605,21 @@ function RegressionPanel({
           <div className="text-slate-300">{run.expected.join(", ") || "(empty cart)"}</div>
           <div className="mt-1 text-slate-500">observed</div>
           <div className="text-slate-300">{run.ticket.join(", ") || (run.status === "running" ? "…" : "(empty cart)")}</div>
+          {ab && run.shadow && (
+            <>
+              <div className="mt-1 flex items-center gap-2 text-slate-500">
+                same calls, single ear, no guards
+                <span
+                  className={`rounded px-1.5 py-0.5 font-sans text-[10px] font-semibold uppercase ${
+                    run.shadow.pass ? "bg-emerald-400/15 text-emerald-300" : "bg-rose-400/15 text-rose-200"
+                  }`}
+                >
+                  {run.shadow.pass ? "pass" : "fail"}
+                </span>
+              </div>
+              <div className="text-slate-300">{run.shadow.ticket.join(", ") || "(empty cart)"}</div>
+            </>
+          )}
           {run.score && (
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-slate-400">
               <span>slots {Math.round(run.score.slotAccuracy * 100)}%</span>

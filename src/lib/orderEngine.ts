@@ -147,6 +147,16 @@ export type ModifyArgs = {
 let lineCounter = 0;
 const newLineId = () => `line_${++lineCounter}`;
 
+/**
+ * Display name for whoever a line belongs to. Uses the engine's own notion of the
+ * driver, which is what ownership is decided against, not the room ear's latest guess.
+ */
+export function ownerLabel(owner: string, driver: string | null): string {
+  if (owner === UNASSIGNED) return "Unassigned";
+  if (owner === DRIVER || (driver !== null && owner === driver)) return "Driver";
+  return `Guest ${owner}`;
+}
+
 export class OrderEngine {
   private lines: OrderLine[] = [];
   private flags: OrderFlag[] = [];
@@ -646,9 +656,7 @@ export class OrderEngine {
 
   /** Display name for a guest: the driver, or whoever else is in the car. */
   guestLabel(owner: string): string {
-    if (owner === UNASSIGNED) return "Unassigned";
-    if (this.isDriver(owner)) return "Driver";
-    return `Guest ${owner}`;
+    return ownerLabel(owner, this.driver);
   }
 
   /** The ticket grouped the way the bag is packed. */

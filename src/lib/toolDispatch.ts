@@ -1,6 +1,7 @@
 import type { Attribution, RoomEar } from "./attribution";
 import type { Size } from "./menu";
 import type { ForWhom, OrderEngine, Outcome, Whose } from "./orderEngine";
+import type { ShadowCart } from "./shadowCart";
 
 /**
  * One place where a `tool.call` from the agent turns into a change on the ticket.
@@ -36,6 +37,9 @@ export type QueuedToolCall = {
  * The agent, having had no answer, usually asks for the same thing again on the
  * next turn; that repeat is the same work, not a second burger, so it returns the
  * original outcome instead of tripping the repeat guard.
+ *
+ * With a shadow cart attached, every call that reaches the ticket reaches the shadow
+ * too, and a repeat that is skipped here is skipped there: both carts see the same work.
  */
 export class ToolRunner {
   private unacknowledged = new Map<string, { at: number; outcome: Outcome }>();
@@ -43,6 +47,8 @@ export class ToolRunner {
   constructor(
     private engine: OrderEngine,
     private opts: Omit<DispatchOptions, "turnStartedAt">,
+    /** A/B mode: the same calls, also booked into a cart that trusts every one of them. */
+    private shadow?: ShadowCart,
   ) {}
 
   private static key = (call: QueuedToolCall) => `${call.name}:${JSON.stringify(call.args)}`;
@@ -56,10 +62,17 @@ export class ToolRunner {
       return twin.outcome;
     }
 
+    const held = this.shadow ? this.engine.snapshot().lines.filter((l) => l.status === "pending") : [];
+
     const outcome = dispatchTool(this.engine, call.name, call.args, {
       ...this.opts,
       turnStartedAt: call.turnStartedAt,
     });
+
+    if (this.shadow) {
+      const kept = new Set(this.engine.snapshot().lines.map((l) => l.lineId));
+      this.shadow.mirror(call, held.filter((l) => !kept.has(l.lineId)));
+    }
 
     if (!resultReachesAgent) this.unacknowledged.set(key, { at: Date.now(), outcome });
     return outcome;
