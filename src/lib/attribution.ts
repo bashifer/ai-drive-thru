@@ -182,6 +182,20 @@ export class RoomEar {
     return { speaker, verdict, matchedPhrase: matched.length > 0, evidence };
   }
 
+  /**
+   * Everything heard in a window, whoever said it.
+   *
+   * `attribute` narrows to the words that matched an item, which is right for "who
+   * asked for this" and wrong for "did they say yes" — consent lives in the rest of
+   * the sentence.
+   */
+  turnText(windowStart: number, windowEnd = performance.now()): string {
+    return this.words
+      .filter((w) => w.wall >= windowStart - 700 && w.wall <= windowEnd + 200)
+      .map((w) => w.text)
+      .join(" ");
+  }
+
   /** Menu-ish phrases heard from someone other than the driver, for proactive asks. */
   recentSideRequests(windowStart: number): { speaker: string; text: string }[] {
     const primary = this.primarySpeaker;

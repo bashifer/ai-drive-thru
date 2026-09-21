@@ -6,6 +6,7 @@ import {
   TAX_RATE,
   canonicalModifier,
   isBackChannel,
+  saysYes,
   modifiersInPhrase,
   priceOf,
   resolveMenuItem,
@@ -393,8 +394,14 @@ export class OrderEngine {
     };
   }
 
-  /** Approve or drop a line that was held back (another voice, big quantity, repeat). */
-  resolvePending(spoken: string | undefined, decision: "add" | "discard"): Outcome {
+  /**
+   * Approve or drop a line that was held back (another voice, big quantity, repeat).
+   *
+   * An "add" needs the driver to have actually said yes. "That's everything for me,
+   * thanks" is a customer moving on, and reading it as consent is how a back-seat
+   * request ends up on a stranger's bill.
+   */
+  resolvePending(spoken: string | undefined, decision: "add" | "discard", evidence?: string): Outcome {
     const pending = this.lines.filter((l) => l.status === "pending");
     if (!pending.length) {
       return {
@@ -414,6 +421,14 @@ export class OrderEngine {
     if (decision === "discard") {
       this.lines = this.lines.filter((l) => l.lineId !== target.lineId);
       return { status: "ok", message: `Dropped ${target.name}. It never reached the ticket.` };
+    }
+
+    if (this.speakerAware && evidence && !saysYes(evidence)) {
+      this.flag("side_voice", `No spoken yes for ${target.name} — still held`);
+      return {
+        status: "needs_confirmation",
+        message: `Nothing in "${evidence.trim()}" was a yes, so ${target.name} is still off the ticket. Ask the driver one plain question — "add the ${target.name}?" — and only call this again when they answer.`,
+      };
     }
 
     target.status = "confirmed";
@@ -507,8 +522,16 @@ export class OrderEngine {
 
     // Work out the whole change before touching anything: a correction that turns out
     // to be a no-op must not leave a split line behind.
+    //
+    // "Hers without pickles, just one of them" reaches us as units=1 and often
+    // quantity=1 as well — the model describing the subset twice, not asking for a
+    // line of two to become a line of one. Scope wins over quantity.
+    const scoped =
+      args.units !== undefined && Math.max(1, Math.round(args.units)) < line.quantity;
+    const restatesScope =
+      scoped && args.quantity !== undefined && Math.round(args.quantity) <= Math.round(args.units ?? 0);
     const quantity =
-      args.quantity !== undefined ? Math.max(1, Math.round(args.quantity)) : undefined;
+      args.quantity !== undefined && !restatesScope ? Math.max(1, Math.round(args.quantity)) : undefined;
 
     if (this.guards && quantity !== undefined && quantity > GUARDS.escalateQuantity) {
       this.escalated = true;

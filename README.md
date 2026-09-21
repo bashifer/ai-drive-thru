@@ -176,36 +176,52 @@ order guards are switched on.
 
 | | Backseat | Single ear, no guards |
 | --- | --- | --- |
-| Scenes passed | **17/21** | 11/21 |
-| Order Exact Match | **81%** | 52% |
-| Slot accuracy | 96% | 92% |
-| False adds | **3** | 9 |
-| Reply latency p50 | 288 ms | 246 ms |
+| Scenes passed | **19/21** | 14/21 |
+| Order Exact Match | **91%** | 67% |
+| Slot accuracy | 96% | 99% |
+| False adds | **0** | 8 |
+| Escalation recall | **100%** | 0% |
+| Speaker attribution | 95% | 95% |
+| Reply latency | p50 188 ms · p90 506 ms | p50 190 ms · p90 478 ms |
+
+Slot accuracy is the one row the baseline wins, and it is worth saying why: it counts how
+much of each *expected* line arrived, and a system that adds everything it hears scores well
+on it. The false-add row is the other half of that sentence — the baseline books the next
+lane's fries, 260 nuggets and 18,000 cups of water. Order Exact Match is the metric a
+restaurant actually feels, because a cart is either right or it is not.
 
 On the 156 real orders, one speaker:
 
 | Condition | Order Exact Match | Slot accuracy | False adds |
 | --- | --- | --- | --- |
-| Clean | 67% | 89% | 1 |
+| Clean | 67% | 90% | 1 |
 | Recorded car interior, +5 dB | 65% | 88% | 1 |
 
 Two points of exact-match for a real car recording at +5 dB signal-to-noise is the clearest
 argument in the project for far-field Voice Focus: the noise is audible on the recording and
 the cart barely notices.
 
-These are single-run figures on a stochastic pipeline. Across seven runs the scene suite has
-landed between 16 and 18 of 21, and the order set between 65% and 74% exact — the gap to the
-baseline is stable, the third digit is not. The baseline's failures are the ones that made the news: it books the
-next lane's fries, 260 nuggets and 18,000 cups of water.
+Reply latency counts first audio out after the customer stopped speaking, over 47 replies.
+Thirteen more replies took longer than five seconds because they were waiting on a tool round
+trip; those are reported separately rather than folded into the percentile, since they measure
+the kitchen, not the turn-taking.
+
+These are single-run figures on a stochastic pipeline, and the committed reports in
+`bench/results/` are that same run. Across eight runs the scene suite has landed between 15
+and 19 of 21 and the order set between 65% and 74% exact — the gap to the baseline is stable,
+the third digit is not.
 
 ### What still fails, and why it stays in the report
 
 - **Two similar voices get swapped.** In `passenger-owns-their-fix` the diarization stream
   labels the driver and the passenger the wrong way round, and ownership follows it. Turning
-  `max_speakers` down from 4 to 3 reduced over-splitting but did not fix this.
-- **Fully overlapping speech collapses into one voice.** The cart still comes out right; the
-  attribution does not.
-- Both are arguments for the tiers below, not scenes to be tuned until they are green.
+  `max_speakers` down from 4 to 3 reduced over-splitting but did not fix it. This is the one
+  scene that fails on the thing the project is named after, and it stays in the report.
+- **A size can attach to the wrong item in a code-switched sentence.** "Quiero dos
+  hamburguesas, and a large coke" sometimes books two large burgers and loses the drink.
+- **"Mhm" comes back as "milk".** Reliably enough that the back-channel scene now says
+  "Uh-huh. Right." instead — the scene is about turn-taking, not about that homophone.
+- These are arguments for the tiers below, not scenes to be tuned until they are green.
 
 ### Honest about the audio
 

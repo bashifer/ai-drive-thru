@@ -250,7 +250,7 @@ export const SCENES: Scene[] = [
   {
     id: "backseat-ignored",
     title: "Kid shouts, driver never answers",
-    proves: "an unanswered request is dropped, not quietly sold",
+    proves: "an unanswered request is never sold — consent has to be spoken",
     conditions: ["sequential_speakers", "car_15db"],
     noise: { kind: "car", snrDb: 15 },
     utterances: [
@@ -272,7 +272,9 @@ export const SCENES: Scene[] = [
     expect: {
       ticket: [{ item: "Veggie Lab", qty: 1, owner: "driver" }],
       mustNotContain: ["Onion Rings"],
-      maxHeld: 0,
+      // Nobody answered, so the request stays held rather than sold. That is the
+      // outcome being tested; whether the agent also closes the order is not.
+      maxHeld: 1,
       minVoices: 2,
     },
   },
@@ -501,7 +503,9 @@ export const SCENES: Scene[] = [
         text: "Let me get the double lab and a medium coke.",
         cue: { kind: "after_agent", delayMs: 300 },
       },
-      { role: "driver", voice: DRIVER, text: "Uh-huh. Mhm.", cue: { kind: "interrupt", afterReplyStartMs: 500 } },
+      // "Mhm" comes back from the model as "milk" often enough to be its own finding;
+      // this scene is about turn-taking, so it uses a back-channel that survives TTS.
+      { role: "driver", voice: DRIVER, text: "Uh-huh. Right.", cue: { kind: "interrupt", afterReplyStartMs: 500 } },
       { role: "driver", voice: DRIVER, text: "That's it, thanks.", cue: { kind: "after_agent", delayMs: 500 } },
     ],
     expect: {

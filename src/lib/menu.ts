@@ -504,6 +504,34 @@ const BACK_CHANNEL_WORDS = new Set([
   "gotcha",
 ]);
 
+/** Words that mean yes. Anything else is not consent, however polite. */
+const AFFIRMATIVE = [
+  "yes",
+  "yeah",
+  "yep",
+  "yup",
+  "sure",
+  "ok",
+  "okay",
+  "alright",
+  "fine",
+  "please do",
+  "go ahead",
+  "add",
+  "why not",
+  "of course",
+  "do it",
+  "sounds good",
+];
+
+/** True when these words are an answer of yes rather than a change of subject. */
+export function saysYes(text: string): boolean {
+  const t = normalize(text);
+  if (!t) return false;
+  const words = new Set(t.split(" "));
+  return AFFIRMATIVE.some((a) => (a.includes(" ") ? t.includes(a) : words.has(a)));
+}
+
 /** True when the words an item was booked from are just the customer agreeing. */
 export function isBackChannel(text: string): boolean {
   const parts = normalize(text).split(" ").filter(Boolean);

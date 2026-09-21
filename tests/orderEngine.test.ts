@@ -126,6 +126,18 @@ describe("the car is not one person", () => {
     assert.deepEqual(names(e), ["1×Milkshake"]);
   });
 
+  test("consent has to be spoken — moving on is not a yes", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "chocolate shake", quantity: 1, attribution: backSeat() });
+    const out = e.resolvePending("shake", "add", "That's everything for me, thanks.");
+    assert.equal(out.status, "needs_confirmation");
+    assert.equal(confirmed(e).length, 0, "still off the ticket");
+
+    const yes = e.resolvePending("shake", "add", "Yeah, go ahead.");
+    assert.equal(yes.status, "ok");
+    assert.deepEqual(names(e), ["1×Milkshake"]);
+  });
+
   test("the driver's no drops it without a trace on the ticket", () => {
     const e = new OrderEngine();
     e.addItem({ spoken: "chocolate shake", quantity: 1, attribution: backSeat() });
@@ -212,6 +224,29 @@ describe("one order, several people", () => {
       2,
       "still two burgers in total",
     );
+  });
+
+  test("'just one of them' scopes the change instead of shrinking the line", () => {
+    // The model usually says this twice: units=1 and quantity=1. Only one of those
+    // is a request to make a line of two into a line of one, and it is neither.
+    const e = new OrderEngine();
+    e.addItem({ spoken: "lab burger", quantity: 2, attribution: driver() });
+    e.modifyItem({
+      spoken: "lab burger",
+      quantity: 1,
+      units: 1,
+      add_modifiers: ["no pickles"],
+      whose: "theirs",
+      attribution: driver(),
+    });
+
+    const burgers = confirmed(e).filter((l) => l.name === "Lab Burger");
+    assert.equal(
+      burgers.reduce((n, l) => n + l.quantity, 0),
+      2,
+      "both burgers survive",
+    );
+    assert.equal(burgers.filter((l) => l.modifiers.includes("no pickles")).length, 1);
   });
 
   test("a passenger may fix their own food without asking the driver", () => {

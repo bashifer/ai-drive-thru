@@ -132,7 +132,13 @@ export function dispatchTool(
       return engine.removeItem(spoken);
 
     case "confirm_held_item":
-      return engine.resolvePending(spoken || undefined, args.decision === "discard" ? "discard" : "add");
+      return engine.resolvePending(
+        spoken || undefined,
+        args.decision === "discard" ? "discard" : "add",
+        // The whole turn, not just the words that matched the item: consent lives in
+        // "yeah, go ahead", which shares no words with "chicken nuggets".
+        opts.room?.turnText(opts.turnStartedAt),
+      );
 
     case "get_menu":
       return engine.menuFor(typeof args.category === "string" ? args.category : undefined);

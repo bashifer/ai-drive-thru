@@ -1,0 +1,3255 @@
+{
+  "label": "baseline (single ear, no guards)",
+  "ranAt": "2026-09-21T01:40:59.942Z",
+  "aggregate": {
+    "scenes": 21,
+    "passed": 14,
+    "orderExactMatch": 0.667,
+    "slotAccuracy": 0.985,
+    "falseAdds": 8,
+    "speakerAttribution": 0.947,
+    "unknownSpeakerRate": 0,
+    "correctionSuccess": 1,
+    "escalationRecall": 0,
+    "latencyP50": 190,
+    "latencyP90": 478,
+    "replies": 48,
+    "slowReplies": 10
+  },
+  "results": [
+    {
+      "scene": "clean-order",
+      "title": "Plain order, quiet lane",
+      "proves": "the baseline works before anything is made hard",
+      "conditions": [
+        "clean"
+      ],
+      "noiseSource": "none",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 7,
+        "slotsTotal": 7,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Double Lab Burger",
+        "1×Fries/large"
+      ],
+      "expected": [
+        "1×Double Lab Burger",
+        "1×Fries"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Double Lab Burger:A",
+        "Fries:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 3,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        199,
+        47
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "Can I get a double cheeseburger and a large fries?"
+        },
+        {
+          "who": "agent",
+          "text": "I've got those. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "That's everything. Thanks."
+        },
+        {
+          "who": "agent",
+          "text": "I have one double lab burger and one large fries for twelve ninety-seven. Is that everything?"
+        }
+      ],
+      "trace": [
+        "283 session.updated",
+        "328 session.ready",
+        "328 reply.started",
+        "793 transcript.agent.delta",
+        "793 transcript.agent.delta",
+        "793 transcript.agent.delta",
+        "793 transcript.agent.delta",
+        "793 transcript.agent.delta",
+        "793 transcript.agent.delta",
+        "794 transcript.agent.delta",
+        "794 transcript.agent.delta",
+        "794 transcript.agent.delta",
+        "3546 transcript.agent",
+        "4050 reply.done",
+        "5791 input.speech.started",
+        "5792 transcript.user.delta",
+        "7092 transcript.user.delta",
+        "8292 transcript.user.delta",
+        "8494 input.speech.stopped",
+        "8494 transcript.user",
+        "8495 reply.started",
+        "9345 tool.call",
+        "9409 tool.call",
+        "11720 reply.done",
+        "11729 add_item({\"item\":\"double cheeseburger\"}) -> ok",
+        "11731 add_item({\"item\":\"fries\",\"size\":\"large\"}) -> ok",
+        "11782 reply.started",
+        "12732 transcript.agent.delta",
+        "12732 transcript.agent.delta",
+        "12732 transcript.agent.delta",
+        "12732 transcript.agent.delta",
+        "12733 transcript.agent.delta",
+        "15163 transcript.agent",
+        "15469 reply.done",
+        "17391 input.speech.started",
+        "17392 transcript.user.delta",
+        "18593 input.speech.stopped",
+        "18593 transcript.user",
+        "18595 reply.started",
+        "19217 tool.call",
+        "21500 reply.done",
+        "21500 read_back_order({}) -> ok",
+        "21551 reply.started",
+        "22581 transcript.agent.delta",
+        "22582 transcript.agent.delta",
+        "22582 transcript.agent.delta",
+        "22582 transcript.agent.delta",
+        "22582 transcript.agent.delta",
+        "22582 transcript.agent.delta",
+        "22582 transcript.agent.delta",
+        "22582 transcript.agent.delta",
+        "22583 transcript.agent.delta",
+        "22583 transcript.agent.delta",
+        "22583 transcript.agent.delta",
+        "22583 transcript.agent.delta",
+        "22584 transcript.agent.delta",
+        "22584 transcript.agent.delta",
+        "22584 transcript.agent.delta",
+        "22584 transcript.agent.delta",
+        "28348 transcript.agent",
+        "28669 reply.done",
+        "32838 session.ended"
+      ],
+      "durationMs": 33318
+    },
+    {
+      "scene": "engine-15db",
+      "title": "Order at +15 dB over a recorded car",
+      "proves": "ordinary road noise costs nothing",
+      "conditions": [
+        "car_15db"
+      ],
+      "noiseSource": "recorded",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 7,
+        "slotsTotal": 7,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Bacon Stack",
+        "1×Iced Tea/medium"
+      ],
+      "expected": [
+        "1×Bacon Stack",
+        "1×Iced Tea"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Bacon Stack:A",
+        "Iced Tea:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 3,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        478,
+        143
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "Yeah, let me get a Bacon Stack and a medium iced tea."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "That's it."
+        },
+        {
+          "who": "agent",
+          "text": "I have one Bacon Stack and one medium iced tea for eleven eighty-nine. Is that correct?"
+        }
+      ],
+      "trace": [
+        "300 session.updated",
+        "346 session.ready",
+        "346 reply.started",
+        "827 transcript.agent.delta",
+        "827 transcript.agent.delta",
+        "827 transcript.agent.delta",
+        "828 transcript.agent.delta",
+        "828 transcript.agent.delta",
+        "828 transcript.agent.delta",
+        "829 transcript.agent.delta",
+        "829 transcript.agent.delta",
+        "829 transcript.agent.delta",
+        "3416 transcript.agent",
+        "3919 reply.done",
+        "5915 input.speech.started",
+        "5915 transcript.user.delta",
+        "7214 transcript.user.delta",
+        "8615 transcript.user.delta",
+        "8816 input.speech.stopped",
+        "8816 transcript.user",
+        "8817 reply.started",
+        "10315 tool.call",
+        "10371 tool.call",
+        "12669 reply.done",
+        "12671 add_item({\"item\":\"Bacon Stack\"}) -> ok",
+        "12673 add_item({\"item\":\"iced tea\",\"size\":\"medium\"}) -> ok",
+        "12726 reply.started",
+        "13560 transcript.agent.delta",
+        "13560 transcript.agent.delta",
+        "13560 transcript.agent.delta",
+        "13560 transcript.agent.delta",
+        "16076 transcript.agent",
+        "16379 reply.done",
+        "18312 input.speech.started",
+        "18313 transcript.user.delta",
+        "19016 input.speech.stopped",
+        "19020 transcript.user",
+        "19020 reply.started",
+        "19682 tool.call",
+        "21969 reply.done",
+        "21969 read_back_order({}) -> ok",
+        "22021 reply.started",
+        "23038 transcript.agent.delta",
+        "23038 transcript.agent.delta",
+        "23038 transcript.agent.delta",
+        "23038 transcript.agent.delta",
+        "23039 transcript.agent.delta",
+        "23039 transcript.agent.delta",
+        "23039 transcript.agent.delta",
+        "23040 transcript.agent.delta",
+        "23040 transcript.agent.delta",
+        "23040 transcript.agent.delta",
+        "23040 transcript.agent.delta",
+        "23040 transcript.agent.delta",
+        "23041 transcript.agent.delta",
+        "23041 transcript.agent.delta",
+        "23041 transcript.agent.delta",
+        "23042 transcript.agent.delta",
+        "28725 transcript.agent",
+        "29049 reply.done",
+        "33228 session.ended"
+      ],
+      "durationMs": 33571
+    },
+    {
+      "scene": "engine-5db",
+      "title": "Same order at +5 dB over a recorded car",
+      "proves": "far-field Voice Focus holds the transcript together where it gets hard",
+      "conditions": [
+        "car_5db"
+      ],
+      "noiseSource": "recorded",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 7,
+        "slotsTotal": 7,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Bacon Stack",
+        "1×Iced Tea/medium"
+      ],
+      "expected": [
+        "1×Bacon Stack",
+        "1×Iced Tea"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Bacon Stack:A",
+        "Iced Tea:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 3,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        415,
+        40
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "Yeah, let me get a Bacon Stack and a medium iced tea."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "That's it."
+        },
+        {
+          "who": "agent",
+          "text": "I have one Bacon Stack and one medium iced tea for eleven eighty-nine. Is that everything?"
+        }
+      ],
+      "trace": [
+        "270 session.updated",
+        "315 session.ready",
+        "315 reply.started",
+        "796 transcript.agent.delta",
+        "796 transcript.agent.delta",
+        "796 transcript.agent.delta",
+        "797 transcript.agent.delta",
+        "797 transcript.agent.delta",
+        "798 transcript.agent.delta",
+        "798 transcript.agent.delta",
+        "799 transcript.agent.delta",
+        "799 transcript.agent.delta",
+        "3544 transcript.agent",
+        "4059 reply.done",
+        "5991 input.speech.started",
+        "5991 transcript.user.delta",
+        "7390 transcript.user.delta",
+        "8589 transcript.user.delta",
+        "8893 input.speech.stopped",
+        "8893 transcript.user",
+        "8894 reply.started",
+        "10429 tool.call",
+        "10494 tool.call",
+        "12788 reply.done",
+        "12790 add_item({\"item\":\"Bacon Stack\"}) -> ok",
+        "12792 add_item({\"item\":\"iced tea\",\"size\":\"medium\"}) -> ok",
+        "12844 reply.started",
+        "13634 transcript.agent.delta",
+        "13634 transcript.agent.delta",
+        "13634 transcript.agent.delta",
+        "13634 transcript.agent.delta",
+        "15671 transcript.agent",
+        "15989 reply.done",
+        "17790 input.speech.started",
+        "17790 transcript.user.delta",
+        "18491 transcript.user",
+        "18493 reply.started",
+        "18493 input.speech.stopped",
+        "19111 tool.call",
+        "21398 reply.done",
+        "21398 read_back_order({}) -> ok",
+        "21451 reply.started",
+        "22491 transcript.agent.delta",
+        "22491 transcript.agent.delta",
+        "22492 transcript.agent.delta",
+        "22492 transcript.agent.delta",
+        "22492 transcript.agent.delta",
+        "22493 transcript.agent.delta",
+        "22493 transcript.agent.delta",
+        "22493 transcript.agent.delta",
+        "22494 transcript.agent.delta",
+        "22494 transcript.agent.delta",
+        "22494 transcript.agent.delta",
+        "22494 transcript.agent.delta",
+        "22494 transcript.agent.delta",
+        "22494 transcript.agent.delta",
+        "22495 transcript.agent.delta",
+        "22495 transcript.agent.delta",
+        "28483 transcript.agent",
+        "28798 reply.done",
+        "32969 session.ended"
+      ],
+      "durationMs": 33349
+    },
+    {
+      "scene": "babble-5db",
+      "title": "Conversation running under the order",
+      "proves": "competing speech is not menu input",
+      "conditions": [
+        "babble_5db",
+        "background_speaker"
+      ],
+      "noiseSource": "recorded",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 6,
+        "slotsTotal": 6,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Apple Pie",
+        "1×Crispy Chicken Sandwich"
+      ],
+      "expected": [
+        "1×Apple Pie",
+        "1×Crispy Chicken Sandwich"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 2,
+      "driver": "A",
+      "owners": [
+        "Crispy Chicken Sandwich:A",
+        "Apple Pie:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 3,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        1363,
+        224
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "I'll have the Crispy Chicken Sandwich and an Apple Pie."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "That's all for me."
+        },
+        {
+          "who": "agent",
+          "text": "I have one Crispy Chicken Sandwich and one Apple Pie. Is that everything?"
+        }
+      ],
+      "trace": [
+        "382 session.updated",
+        "429 session.ready",
+        "429 reply.started",
+        "896 transcript.agent.delta",
+        "896 transcript.agent.delta",
+        "896 transcript.agent.delta",
+        "896 transcript.agent.delta",
+        "897 transcript.agent.delta",
+        "897 transcript.agent.delta",
+        "897 transcript.agent.delta",
+        "897 transcript.agent.delta",
+        "897 transcript.agent.delta",
+        "3646 transcript.agent",
+        "4007 reply.done",
+        "5595 input.speech.started",
+        "5596 transcript.user.delta",
+        "5995 transcript.user.delta",
+        "7194 transcript.user.delta",
+        "8196 transcript.user.delta",
+        "9198 input.speech.stopped",
+        "9199 transcript.user",
+        "9201 reply.started",
+        "10035 tool.call",
+        "10076 tool.call",
+        "12387 reply.done",
+        "12389 add_item({\"item\":\"Crispy Chicken Sandwich\"}) -> ok",
+        "12390 add_item({\"item\":\"Apple Pie\"}) -> ok",
+        "12441 reply.started",
+        "13263 transcript.agent.delta",
+        "13263 transcript.agent.delta",
+        "13263 transcript.agent.delta",
+        "13263 transcript.agent.delta",
+        "15532 transcript.agent",
+        "15847 reply.done",
+        "17995 input.speech.started",
+        "17996 transcript.user.delta",
+        "18194 transcript.user.delta",
+        "18895 transcript.user",
+        "18897 reply.started",
+        "18897 input.speech.stopped",
+        "19503 tool.call",
+        "21797 reply.done",
+        "21798 read_back_order({}) -> ok",
+        "21848 reply.started",
+        "22833 transcript.agent.delta",
+        "22833 transcript.agent.delta",
+        "22834 transcript.agent.delta",
+        "22834 transcript.agent.delta",
+        "22834 transcript.agent.delta",
+        "22834 transcript.agent.delta",
+        "22835 transcript.agent.delta",
+        "22835 transcript.agent.delta",
+        "22835 transcript.agent.delta",
+        "22835 transcript.agent.delta",
+        "22835 transcript.agent.delta",
+        "22835 transcript.agent.delta",
+        "22835 transcript.agent.delta",
+        "27829 transcript.agent",
+        "28147 reply.done",
+        "32313 session.ended"
+      ],
+      "durationMs": 33298
+    },
+    {
+      "scene": "backseat-declined",
+      "title": "Kid shouts for a shake, driver says no",
+      "proves": "a second voice never reaches the ticket on its own",
+      "conditions": [
+        "sequential_speakers",
+        "car_15db"
+      ],
+      "noiseSource": "recorded",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 7,
+        "slotsTotal": 7,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Cola/small",
+        "1×Lab Burger"
+      ],
+      "expected": [
+        "1×Cola",
+        "1×Lab Burger"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 2,
+      "driver": "A",
+      "owners": [
+        "Lab Burger:A",
+        "Cola:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 4,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        181,
+        359,
+        107
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "I'll take a lab burger and a small coke."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "And a chocolate shake. I want a chocolate shake."
+        },
+        {
+          "who": "agent",
+          "text": "Added the shake. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "No, no shake. That's everything."
+        },
+        {
+          "who": "agent",
+          "text": "Removed the shake. Would you like to hear your order?"
+        }
+      ],
+      "trace": [
+        "203 session.updated",
+        "250 session.ready",
+        "250 reply.started",
+        "1166 transcript.agent.delta",
+        "1167 transcript.agent.delta",
+        "1167 transcript.agent.delta",
+        "1167 transcript.agent.delta",
+        "1167 transcript.agent.delta",
+        "1167 transcript.agent.delta",
+        "1168 transcript.agent.delta",
+        "1168 transcript.agent.delta",
+        "1168 transcript.agent.delta",
+        "3600 transcript.agent",
+        "4094 reply.done",
+        "5621 input.speech.started",
+        "5622 transcript.user.delta",
+        "6921 transcript.user.delta",
+        "7622 transcript.user",
+        "7623 reply.started",
+        "7624 input.speech.stopped",
+        "8532 tool.call",
+        "8611 tool.call",
+        "10914 reply.done",
+        "10915 add_item({\"item\":\"lab burger\"}) -> ok",
+        "10916 add_item({\"item\":\"coke\",\"size\":\"small\"}) -> ok",
+        "10968 reply.started",
+        "11803 transcript.agent.delta",
+        "11804 transcript.agent.delta",
+        "11804 transcript.agent.delta",
+        "11804 transcript.agent.delta",
+        "13842 transcript.agent",
+        "14154 reply.done",
+        "15422 input.speech.started",
+        "15422 transcript.user.delta",
+        "16721 transcript.user.delta",
+        "17823 input.speech.stopped",
+        "17823 transcript.user",
+        "17825 reply.started",
+        "18765 tool.call",
+        "20844 reply.done",
+        "20845 add_item({\"item\":\"chocolate shake\"}) -> ok",
+        "20897 reply.started",
+        "21710 transcript.agent.delta",
+        "21710 transcript.agent.delta",
+        "21710 transcript.agent.delta",
+        "21711 transcript.agent.delta",
+        "21711 transcript.agent.delta",
+        "24399 transcript.agent",
+        "24714 reply.done",
+        "26520 input.speech.started",
+        "26521 transcript.user.delta",
+        "27020 transcript.user.delta",
+        "28221 transcript.user.delta",
+        "28423 input.speech.stopped",
+        "28423 transcript.user",
+        "28425 reply.started",
+        "29325 tool.call",
+        "31424 reply.done",
+        "31425 remove_item({\"item\":\"chocolate shake\"}) -> ok",
+        "31476 reply.started",
+        "32368 transcript.agent.delta",
+        "32368 transcript.agent.delta",
+        "32369 transcript.agent.delta",
+        "32369 transcript.agent.delta",
+        "32369 transcript.agent.delta",
+        "32369 transcript.agent.delta",
+        "32369 transcript.agent.delta",
+        "32369 transcript.agent.delta",
+        "32369 transcript.agent.delta",
+        "32369 transcript.agent.delta",
+        "35981 transcript.agent",
+        "36294 reply.done",
+        "40471 session.ended"
+      ],
+      "durationMs": 40922
+    },
+    {
+      "scene": "backseat-approved",
+      "title": "Kid shouts for nuggets, driver agrees",
+      "proves": "the held item is added on the driver's word and belongs to the child, not the driver",
+      "conditions": [
+        "sequential_speakers",
+        "ownership",
+        "car_15db"
+      ],
+      "noiseSource": "recorded",
+      "pass": false,
+      "failures": [
+        "Chicken Nuggets: owner driver, expected passenger",
+        "1×Chicken Nuggets → got 1×Chicken Nuggets",
+        "false add 1×Chicken Nuggets"
+      ],
+      "score": {
+        "orderExactMatch": false,
+        "slotAccuracy": 0.833,
+        "slotsMatched": 5,
+        "slotsTotal": 6,
+        "falseAdds": 1,
+        "missing": 0,
+        "ownerAccuracy": 0.5,
+        "unknownSpeakerRate": 0,
+        "notes": [
+          "Chicken Nuggets: owner driver, expected passenger",
+          "1×Chicken Nuggets → got 1×Chicken Nuggets",
+          "false add 1×Chicken Nuggets"
+        ]
+      },
+      "ticket": [
+        "1×Chicken Nuggets",
+        "1×Chicken Nuggets",
+        "1×Crispy Chicken Sandwich"
+      ],
+      "expected": [
+        "1×Chicken Nuggets",
+        "1×Crispy Chicken Sandwich"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 2,
+      "driver": "A",
+      "owners": [
+        "Crispy Chicken Sandwich:A",
+        "Chicken Nuggets:A",
+        "Chicken Nuggets:UNASSIGNED"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 5,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        211,
+        420,
+        33
+      ],
+      "slowReplies": 2,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "Just a Crispy Chicken Sandwich for me."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "Can I have chicken nuggets?"
+        },
+        {
+          "who": "customer",
+          "text": "Nuggets, please."
+        },
+        {
+          "who": "agent",
+          "text": "One order of nuggets. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "Yeah, go ahead and add the nuggets for him."
+        },
+        {
+          "who": "agent",
+          "text": "Added for him. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "That's all."
+        },
+        {
+          "who": "agent",
+          "text": "I have a Crispy Chicken Sandwich and chicken nuggets for you, and chicken nuggets for him. Is that everything?"
+        }
+      ],
+      "trace": [
+        "283 session.updated",
+        "329 session.ready",
+        "329 reply.started",
+        "803 transcript.agent.delta",
+        "804 transcript.agent.delta",
+        "804 transcript.agent.delta",
+        "804 transcript.agent.delta",
+        "804 transcript.agent.delta",
+        "804 transcript.agent.delta",
+        "804 transcript.agent.delta",
+        "805 transcript.agent.delta",
+        "805 transcript.agent.delta",
+        "3711 transcript.agent",
+        "4221 reply.done",
+        "5995 input.speech.started",
+        "5995 transcript.user.delta",
+        "7296 transcript.user.delta",
+        "7997 input.speech.stopped",
+        "7997 transcript.user",
+        "7999 reply.started",
+        "8877 tool.call",
+        "11180 reply.done",
+        "11182 add_item({\"for_whom\":\"me\",\"item\":\"Crispy Chicken Sandwich\"}) -> ok",
+        "11234 reply.started",
+        "12054 transcript.agent.delta",
+        "12054 transcript.agent.delta",
+        "12054 transcript.agent.delta",
+        "12055 transcript.agent.delta",
+        "14489 transcript.agent",
+        "14811 reply.done",
+        "16195 input.speech.started",
+        "16195 transcript.user.delta",
+        "16595 transcript.user.delta",
+        "17295 transcript.user",
+        "17297 reply.started",
+        "17297 input.speech.stopped",
+        "18294 input.speech.started",
+        "18597 input.speech.stopped",
+        "18597 transcript.user",
+        "20258 tool.call",
+        "21431 reply.done",
+        "21432 add_item({\"item\":\"chicken nuggets\"}) -> ok",
+        "21484 reply.started",
+        "22298 transcript.agent.delta",
+        "22298 transcript.agent.delta",
+        "22298 transcript.agent.delta",
+        "22298 transcript.agent.delta",
+        "22299 transcript.agent.delta",
+        "22299 transcript.agent.delta",
+        "25359 transcript.agent",
+        "25680 reply.done",
+        "27395 input.speech.started",
+        "27396 transcript.user.delta",
+        "28693 transcript.user.delta",
+        "28898 input.speech.stopped",
+        "28898 transcript.user",
+        "28900 reply.started",
+        "30351 tool.call",
+        "32040 reply.done",
+        "32040 confirm_held_item({\"decision\":\"add\",\"item\":\"chicken nuggets\"}) -> not_found",
+        "32093 reply.started",
+        "33192 tool.call",
+        "35040 reply.done",
+        "35042 add_item({\"for_whom\":\"someone else\",\"item\":\"chicken nuggets\"}) -> ok",
+        "35094 reply.started",
+        "35924 transcript.agent.delta",
+        "35924 transcript.agent.delta",
+        "35924 transcript.agent.delta",
+        "35924 transcript.agent.delta",
+        "35924 transcript.agent.delta",
+        "38612 transcript.agent",
+        "38910 reply.done",
+        "40594 input.speech.started",
+        "40594 transcript.user.delta",
+        "41096 input.speech.stopped",
+        "41099 transcript.user",
+        "41100 reply.started",
+        "41753 tool.call",
+        "44020 reply.done",
+        "44020 read_back_order({}) -> ok",
+        "44072 reply.started",
+        "45126 transcript.agent.delta",
+        "45126 transcript.agent.delta",
+        "45126 transcript.agent.delta",
+        "45126 transcript.agent.delta",
+        "45127 transcript.agent.delta",
+        "45127 transcript.agent.delta",
+        "45127 transcript.agent.delta",
+        "45127 transcript.agent.delta",
+        "45127 transcript.agent.delta",
+        "45128 transcript.agent.delta",
+        "45128 transcript.agent.delta",
+        "45128 transcript.agent.delta",
+        "45128 transcript.agent.delta",
+        "45128 transcript.agent.delta",
+        "45128 transcript.agent.delta",
+        "45128 transcript.agent.delta",
+        "45129 transcript.agent.delta",
+        "45129 transcript.agent.delta",
+        "45129 transcript.agent.delta",
+        "50968 transcript.agent",
+        "51280 reply.done",
+        "55456 session.ended"
+      ],
+      "durationMs": 55832
+    },
+    {
+      "scene": "backseat-ignored",
+      "title": "Kid shouts, driver never answers",
+      "proves": "an unanswered request is never sold — consent has to be spoken",
+      "conditions": [
+        "sequential_speakers",
+        "car_15db"
+      ],
+      "noiseSource": "recorded",
+      "pass": false,
+      "failures": [
+        "false add 1×Onion Rings",
+        "must not contain Onion Rings"
+      ],
+      "score": {
+        "orderExactMatch": false,
+        "slotAccuracy": 1,
+        "slotsMatched": 3,
+        "slotsTotal": 3,
+        "falseAdds": 1,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": [
+          "false add 1×Onion Rings"
+        ]
+      },
+      "ticket": [
+        "1×Onion Rings",
+        "1×Veggie Lab"
+      ],
+      "expected": [
+        "1×Veggie Lab"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 2,
+      "driver": "A",
+      "owners": [
+        "Veggie Lab:A",
+        "Onion Rings:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 3,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        19,
+        309,
+        25
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "One Veggie Lab, please."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "And onion rings. Onion rings too."
+        },
+        {
+          "who": "agent",
+          "text": "Added onion rings. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "That's everything for me, thanks."
+        },
+        {
+          "who": "agent",
+          "text": "I have one Veggie Lab and one order of onion rings, total eleven thirty-four. Is that correct?"
+        }
+      ],
+      "trace": [
+        "222 session.updated",
+        "269 session.ready",
+        "269 reply.started",
+        "748 transcript.agent.delta",
+        "748 transcript.agent.delta",
+        "748 transcript.agent.delta",
+        "748 transcript.agent.delta",
+        "748 transcript.agent.delta",
+        "748 transcript.agent.delta",
+        "749 transcript.agent.delta",
+        "749 transcript.agent.delta",
+        "750 transcript.agent.delta",
+        "3497 transcript.agent",
+        "4015 reply.done",
+        "5342 input.speech.started",
+        "5342 transcript.user.delta",
+        "6742 input.speech.stopped",
+        "6742 transcript.user",
+        "6744 reply.started",
+        "8808 tool.call",
+        "10504 reply.done",
+        "10505 add_item({\"item\":\"Veggie Lab\",\"quantity\":1}) -> ok",
+        "10557 reply.started",
+        "11396 transcript.agent.delta",
+        "11396 transcript.agent.delta",
+        "11397 transcript.agent.delta",
+        "11397 transcript.agent.delta",
+        "14065 transcript.agent",
+        "14375 reply.done",
+        "15843 input.speech.started",
+        "15843 transcript.user.delta",
+        "17141 transcript.user.delta",
+        "17942 input.speech.stopped",
+        "17942 transcript.user",
+        "17944 reply.started",
+        "19170 tool.call",
+        "20955 reply.done",
+        "20956 add_item({\"item\":\"onion rings\",\"quantity\":1}) -> ok",
+        "21008 reply.started",
+        "21850 transcript.agent.delta",
+        "21850 transcript.agent.delta",
+        "21850 transcript.agent.delta",
+        "21850 transcript.agent.delta",
+        "21851 transcript.agent.delta",
+        "24999 transcript.agent",
+        "25314 reply.done",
+        "26941 input.speech.started",
+        "26942 transcript.user.delta",
+        "28242 transcript.user.delta",
+        "28443 transcript.user",
+        "28445 reply.started",
+        "28445 input.speech.stopped",
+        "29077 tool.call",
+        "31354 reply.done",
+        "31355 read_back_order({}) -> ok",
+        "31406 reply.started",
+        "32450 transcript.agent.delta",
+        "32450 transcript.agent.delta",
+        "32450 transcript.agent.delta",
+        "32451 transcript.agent.delta",
+        "32451 transcript.agent.delta",
+        "32451 transcript.agent.delta",
+        "32452 transcript.agent.delta",
+        "32453 transcript.agent.delta",
+        "32453 transcript.agent.delta",
+        "32453 transcript.agent.delta",
+        "32453 transcript.agent.delta",
+        "32454 transcript.agent.delta",
+        "32454 transcript.agent.delta",
+        "32454 transcript.agent.delta",
+        "32455 transcript.agent.delta",
+        "32455 transcript.agent.delta",
+        "32455 transcript.agent.delta",
+        "38218 transcript.agent",
+        "38535 reply.done",
+        "42704 session.ended"
+      ],
+      "durationMs": 43069
+    },
+    {
+      "scene": "next-lane-bleed",
+      "title": "The next lane orders into our microphone",
+      "proves": "a voice that never spoke to this agent cannot put food on this ticket",
+      "conditions": [
+        "background_speaker",
+        "far_field",
+        "car_15db"
+      ],
+      "noiseSource": "recorded",
+      "pass": false,
+      "failures": [
+        "false add 2×Fries/large",
+        "false add 1×Apple Pie",
+        "must not contain Fries",
+        "must not contain Apple Pie"
+      ],
+      "score": {
+        "orderExactMatch": false,
+        "slotAccuracy": 1,
+        "slotsMatched": 3,
+        "slotsTotal": 3,
+        "falseAdds": 2,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": [
+          "false add 2×Fries/large",
+          "false add 1×Apple Pie"
+        ]
+      },
+      "ticket": [
+        "1×Apple Pie",
+        "1×Veggie Lab",
+        "2×Fries/large"
+      ],
+      "expected": [
+        "1×Veggie Lab"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 2,
+      "driver": "A",
+      "owners": [
+        "Veggie Lab:A",
+        "Fries:A",
+        "Apple Pie:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 4,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        7
+      ],
+      "slowReplies": 2,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "Morning, I'd like a Veggie Lab, please."
+        },
+        {
+          "who": "customer",
+          "text": "Give me 2 large fries and an apple pie."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "And that's everything for me."
+        },
+        {
+          "who": "agent",
+          "text": "One Veggie Lab, two large fries, and an apple pie for eighteen fifty-eight. Is that everything?"
+        }
+      ],
+      "trace": [
+        "240 session.updated",
+        "287 session.ready",
+        "287 reply.started",
+        "745 transcript.agent.delta",
+        "746 transcript.agent.delta",
+        "746 transcript.agent.delta",
+        "746 transcript.agent.delta",
+        "747 transcript.agent.delta",
+        "747 transcript.agent.delta",
+        "747 transcript.agent.delta",
+        "748 transcript.agent.delta",
+        "748 transcript.agent.delta",
+        "3342 transcript.agent",
+        "3858 reply.done",
+        "5657 input.speech.started",
+        "5657 transcript.user.delta",
+        "6954 transcript.user.delta",
+        "7358 input.speech.stopped",
+        "7358 transcript.user",
+        "7359 reply.started",
+        "8260 tool.call",
+        "10355 transcript.user.delta",
+        "10568 reply.done",
+        "10569 add_item({\"item\":\"Veggie Lab\"}) -> ok",
+        "11555 transcript.user.delta",
+        "12858 input.speech.stopped",
+        "12858 transcript.user",
+        "12859 reply.started",
+        "14863 tool.call",
+        "14905 tool.call",
+        "17208 reply.done",
+        "17209 add_item({\"item\":\"fries\",\"quantity\":2,\"size\":\"large\"}) -> ok",
+        "17210 add_item({\"item\":\"apple pie\"}) -> ok",
+        "17263 reply.started",
+        "18099 transcript.agent.delta",
+        "18099 transcript.agent.delta",
+        "18099 transcript.agent.delta",
+        "18099 transcript.agent.delta",
+        "20292 transcript.agent",
+        "20607 reply.done",
+        "22554 input.speech.started",
+        "22555 transcript.user.delta",
+        "23055 transcript.user.delta",
+        "23561 input.speech.stopped",
+        "23561 transcript.user",
+        "23563 reply.started",
+        "24161 tool.call",
+        "26447 reply.done",
+        "26447 read_back_order({}) -> ok",
+        "26500 reply.started",
+        "27604 transcript.agent.delta",
+        "27605 transcript.agent.delta",
+        "27605 transcript.agent.delta",
+        "27606 transcript.agent.delta",
+        "27606 transcript.agent.delta",
+        "27606 transcript.agent.delta",
+        "27606 transcript.agent.delta",
+        "27607 transcript.agent.delta",
+        "27607 transcript.agent.delta",
+        "27607 transcript.agent.delta",
+        "27608 transcript.agent.delta",
+        "27608 transcript.agent.delta",
+        "27608 transcript.agent.delta",
+        "27608 transcript.agent.delta",
+        "27609 transcript.agent.delta",
+        "27609 transcript.agent.delta",
+        "33911 transcript.agent",
+        "34227 reply.done",
+        "38395 session.ended"
+      ],
+      "durationMs": 38835
+    },
+    {
+      "scene": "hers-without-pickles",
+      "title": "Two burgers, one of them hers",
+      "proves": "a correction aimed at another person splits the line instead of changing both",
+      "conditions": [
+        "ownership",
+        "correction",
+        "sequential_speakers"
+      ],
+      "noiseSource": "recorded",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 10,
+        "slotsTotal": 10,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Fries/large",
+        "1×Lab Burger",
+        "1×Lab Burger+no pickles"
+      ],
+      "expected": [
+        "1×Fries",
+        "1×Lab Burger",
+        "1×Lab Burger"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Lab Burger:A",
+        "Lab Burger:UNASSIGNED",
+        "Fries:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 4,
+      "corrections": {
+        "expected": 1,
+        "landed": 1
+      },
+      "latencies": [
+        180,
+        234
+      ],
+      "slowReplies": 1,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "2 lab burgers and a large fries."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "Hers without pickles, just one of them."
+        },
+        {
+          "who": "agent",
+          "text": "Okay, one of those without pickles. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "That's everything."
+        },
+        {
+          "who": "agent",
+          "text": "I have two lab burgers, one without pickles, and one large fries for sixteen twenty-one. Is that everything?"
+        }
+      ],
+      "trace": [
+        "238 session.updated",
+        "284 session.ready",
+        "284 reply.started",
+        "754 transcript.agent.delta",
+        "754 transcript.agent.delta",
+        "754 transcript.agent.delta",
+        "754 transcript.agent.delta",
+        "754 transcript.agent.delta",
+        "755 transcript.agent.delta",
+        "755 transcript.agent.delta",
+        "755 transcript.agent.delta",
+        "755 transcript.agent.delta",
+        "3583 transcript.agent",
+        "4100 reply.done",
+        "5556 input.speech.started",
+        "5557 transcript.user.delta",
+        "6857 transcript.user.delta",
+        "7559 input.speech.stopped",
+        "7559 transcript.user",
+        "7560 reply.started",
+        "8383 tool.call",
+        "8445 tool.call",
+        "10750 reply.done",
+        "10751 add_item({\"item\":\"lab burgers\",\"quantity\":2}) -> ok",
+        "10752 add_item({\"item\":\"fries\",\"size\":\"large\"}) -> ok",
+        "10803 reply.started",
+        "11606 transcript.agent.delta",
+        "11606 transcript.agent.delta",
+        "11606 transcript.agent.delta",
+        "11606 transcript.agent.delta",
+        "14279 transcript.agent",
+        "14590 reply.done",
+        "16456 input.speech.started",
+        "16457 transcript.user.delta",
+        "17857 transcript.user.delta",
+        "18358 input.speech.stopped",
+        "18358 transcript.user",
+        "18360 reply.started",
+        "20200 tool.call",
+        "21379 reply.done",
+        "21381 modify_item({\"item\":\"lab burgers\",\"quantity\":1,\"remove_modifiers\":[\"pickles\"],\"units\":1,\"whose\":\"their) -> ok",
+        "21432 reply.started",
+        "22318 transcript.agent.delta",
+        "22319 transcript.agent.delta",
+        "22319 transcript.agent.delta",
+        "22320 transcript.agent.delta",
+        "22320 transcript.agent.delta",
+        "22321 transcript.agent.delta",
+        "22321 transcript.agent.delta",
+        "22321 transcript.agent.delta",
+        "26315 transcript.agent",
+        "26640 reply.done",
+        "28559 input.speech.started",
+        "28559 transcript.user.delta",
+        "28958 transcript.user.delta",
+        "29458 input.speech.stopped",
+        "29458 transcript.user",
+        "29460 reply.started",
+        "30177 tool.call",
+        "32460 reply.done",
+        "32460 read_back_order({}) -> ok",
+        "32510 reply.started",
+        "33595 transcript.agent.delta",
+        "33596 transcript.agent.delta",
+        "33596 transcript.agent.delta",
+        "33596 transcript.agent.delta",
+        "33596 transcript.agent.delta",
+        "33596 transcript.agent.delta",
+        "33596 transcript.agent.delta",
+        "33597 transcript.agent.delta",
+        "33597 transcript.agent.delta",
+        "33597 transcript.agent.delta",
+        "33598 transcript.agent.delta",
+        "33598 transcript.agent.delta",
+        "33599 transcript.agent.delta",
+        "33599 transcript.agent.delta",
+        "33599 transcript.agent.delta",
+        "33600 transcript.agent.delta",
+        "33600 transcript.agent.delta",
+        "33600 transcript.agent.delta",
+        "40511 transcript.agent",
+        "40820 reply.done",
+        "44953 session.ended"
+      ],
+      "durationMs": 45457
+    },
+    {
+      "scene": "passenger-owns-their-fix",
+      "title": "Passenger changes their own sandwich",
+      "proves": "people may fix their own food without a confirmation loop — and it is where two similar voices still get swapped",
+      "conditions": [
+        "ownership",
+        "permission",
+        "sequential_speakers"
+      ],
+      "noiseSource": "recorded",
+      "pass": false,
+      "failures": [
+        "Crispy Chicken Sandwich: owner driver, expected passenger",
+        "1×Crispy Chicken Sandwich+spicy → got 1×Crispy Chicken Sandwich+spicy",
+        "false add 1×Crispy Chicken Sandwich"
+      ],
+      "score": {
+        "orderExactMatch": false,
+        "slotAccuracy": 0.857,
+        "slotsMatched": 6,
+        "slotsTotal": 7,
+        "falseAdds": 1,
+        "missing": 0,
+        "ownerAccuracy": 0.5,
+        "unknownSpeakerRate": 0,
+        "notes": [
+          "Crispy Chicken Sandwich: owner driver, expected passenger",
+          "1×Crispy Chicken Sandwich+spicy → got 1×Crispy Chicken Sandwich+spicy",
+          "false add 1×Crispy Chicken Sandwich"
+        ]
+      },
+      "ticket": [
+        "1×Crispy Chicken Sandwich",
+        "1×Crispy Chicken Sandwich+spicy",
+        "1×Lab Burger"
+      ],
+      "expected": [
+        "1×Crispy Chicken Sandwich",
+        "1×Lab Burger"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 2,
+      "driver": "A",
+      "owners": [
+        "Lab Burger:A",
+        "Crispy Chicken Sandwich:A",
+        "Crispy Chicken Sandwich:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 5,
+      "corrections": {
+        "expected": 1,
+        "landed": 1
+      },
+      "latencies": [
+        200,
+        207,
+        97,
+        32
+      ],
+      "slowReplies": 1,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "A lab burger for me."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "And a Crispy Chicken Sandwich for me, please."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "Yes, add her chicken sandwich."
+        },
+        {
+          "who": "agent",
+          "text": "Added. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "Make mine spicy, please."
+        },
+        {
+          "who": "agent",
+          "text": "I've made that spicy for you. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "That's everything."
+        },
+        {
+          "who": "agent",
+          "text": "I have one Lab Burger, one spicy Crispy Chicken Sandwich, and another Crispy Chicken Sandwich for you. Is that everything?"
+        }
+      ],
+      "trace": [
+        "256 session.updated",
+        "302 session.ready",
+        "302 reply.started",
+        "787 transcript.agent.delta",
+        "787 transcript.agent.delta",
+        "787 transcript.agent.delta",
+        "787 transcript.agent.delta",
+        "788 transcript.agent.delta",
+        "788 transcript.agent.delta",
+        "789 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "3688 transcript.agent",
+        "4201 reply.done",
+        "5774 input.speech.started",
+        "5775 transcript.user.delta",
+        "6273 transcript.user.delta",
+        "6975 input.speech.stopped",
+        "6975 transcript.user",
+        "6977 reply.started",
+        "7873 tool.call",
+        "10181 reply.done",
+        "10182 add_item({\"item\":\"lab burger\",\"for_whom\":\"me\"}) -> ok",
+        "10234 reply.started",
+        "11027 transcript.agent.delta",
+        "11028 transcript.agent.delta",
+        "11028 transcript.agent.delta",
+        "11028 transcript.agent.delta",
+        "13139 transcript.agent",
+        "13450 reply.done",
+        "14875 input.speech.started",
+        "14875 transcript.user.delta",
+        "16173 transcript.user.delta",
+        "17176 input.speech.stopped",
+        "17176 transcript.user",
+        "17178 reply.started",
+        "18549 tool.call",
+        "20190 reply.done",
+        "20191 add_item({\"for_whom\":\"me\",\"item\":\"Crispy Chicken Sandwich\"}) -> ok",
+        "20243 reply.started",
+        "21071 transcript.agent.delta",
+        "21071 transcript.agent.delta",
+        "21072 transcript.agent.delta",
+        "21072 transcript.agent.delta",
+        "23762 transcript.agent",
+        "24080 reply.done",
+        "25776 input.speech.started",
+        "25776 transcript.user.delta",
+        "27074 transcript.user.delta",
+        "27476 input.speech.stopped",
+        "27476 transcript.user",
+        "27478 reply.started",
+        "29235 tool.call",
+        "30470 reply.done",
+        "30471 add_item({\"for_whom\":\"theirs\",\"item\":\"chicken sandwich\"}) -> ok",
+        "30523 reply.started",
+        "31342 transcript.agent.delta",
+        "31342 transcript.agent.delta",
+        "31342 transcript.agent.delta",
+        "33879 transcript.agent",
+        "34200 reply.done",
+        "35774 input.speech.started",
+        "35774 transcript.user.delta",
+        "36174 transcript.user.delta",
+        "37375 input.speech.stopped",
+        "37375 transcript.user",
+        "37377 reply.started",
+        "38206 tool.call",
+        "40480 reply.done",
+        "40481 modify_item({\"add_modifiers\":[\"spicy\"],\"item\":\"Crispy Chicken Sandwich\",\"whose\":\"mine\"}) -> ok",
+        "40533 reply.started",
+        "41476 transcript.agent.delta",
+        "41476 transcript.agent.delta",
+        "41476 transcript.agent.delta",
+        "41476 transcript.agent.delta",
+        "41477 transcript.agent.delta",
+        "41477 transcript.agent.delta",
+        "41478 transcript.agent.delta",
+        "41482 transcript.agent.delta",
+        "45069 transcript.agent",
+        "45390 reply.done",
+        "47275 input.speech.started",
+        "47276 transcript.user.delta",
+        "47674 transcript.user.delta",
+        "48176 input.speech.stopped",
+        "48176 transcript.user",
+        "48177 reply.started",
+        "48843 tool.call",
+        "51110 reply.done",
+        "51110 read_back_order({}) -> ok",
+        "51163 reply.started",
+        "52295 transcript.agent.delta",
+        "52296 transcript.agent.delta",
+        "52296 transcript.agent.delta",
+        "52296 transcript.agent.delta",
+        "52297 transcript.agent.delta",
+        "52297 transcript.agent.delta",
+        "52298 transcript.agent.delta",
+        "52298 transcript.agent.delta",
+        "52299 transcript.agent.delta",
+        "52299 transcript.agent.delta",
+        "52299 transcript.agent.delta",
+        "52299 transcript.agent.delta",
+        "52299 transcript.agent.delta",
+        "52299 transcript.agent.delta",
+        "52300 transcript.agent.delta",
+        "52300 transcript.agent.delta",
+        "52300 transcript.agent.delta",
+        "52301 transcript.agent.delta",
+        "52301 transcript.agent.delta",
+        "52301 transcript.agent.delta",
+        "58989 transcript.agent",
+        "59299 reply.done",
+        "63467 session.ended"
+      ],
+      "durationMs": 63904
+    },
+    {
+      "scene": "overlapping-speakers",
+      "title": "Driver and passenger talk at once",
+      "proves": "overlapping speech does not merge two people into one order line",
+      "conditions": [
+        "overlapping_speakers",
+        "car_15db"
+      ],
+      "noiseSource": "recorded",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 6,
+        "slotsTotal": 6,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Double Lab Burger+no onions",
+        "1×Onion Rings"
+      ],
+      "expected": [
+        "1×Double Lab Burger",
+        "1×Onion Rings"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Double Lab Burger:A",
+        "Onion Rings:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 2,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        174,
+        235
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "Can I get a double cheeseburger with no onions?"
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "Yes, add our onion rings. That's everything."
+        },
+        {
+          "who": "agent",
+          "text": "Added onion rings. Anything else?"
+        }
+      ],
+      "trace": [
+        "247 session.updated",
+        "293 session.ready",
+        "293 reply.started",
+        "755 transcript.agent.delta",
+        "755 transcript.agent.delta",
+        "756 transcript.agent.delta",
+        "756 transcript.agent.delta",
+        "756 transcript.agent.delta",
+        "756 transcript.agent.delta",
+        "757 transcript.agent.delta",
+        "757 transcript.agent.delta",
+        "757 transcript.agent.delta",
+        "3112 transcript.agent",
+        "3661 reply.done",
+        "5758 input.speech.started",
+        "5759 transcript.user.delta",
+        "6961 transcript.user.delta",
+        "7863 input.speech.stopped",
+        "7863 transcript.user",
+        "7864 reply.started",
+        "8774 tool.call",
+        "11080 reply.done",
+        "11081 add_item({\"item\":\"double cheeseburger\",\"modifiers\":[\"no onions\"]}) -> ok",
+        "11133 reply.started",
+        "11939 transcript.agent.delta",
+        "11939 transcript.agent.delta",
+        "11939 transcript.agent.delta",
+        "11939 transcript.agent.delta",
+        "14527 transcript.agent",
+        "14841 reply.done",
+        "16561 input.speech.started",
+        "16561 transcript.user.delta",
+        "17761 transcript.user.delta",
+        "19059 transcript.user.delta",
+        "19262 input.speech.stopped",
+        "19262 transcript.user",
+        "19265 reply.started",
+        "20030 tool.call",
+        "22230 reply.done",
+        "22231 add_item({\"item\":\"onion rings\"}) -> ok",
+        "22283 reply.started",
+        "23102 transcript.agent.delta",
+        "23102 transcript.agent.delta",
+        "23103 transcript.agent.delta",
+        "23103 transcript.agent.delta",
+        "23103 transcript.agent.delta",
+        "26792 transcript.agent",
+        "27100 reply.done",
+        "31272 session.ended"
+      ],
+      "durationMs": 31738
+    },
+    {
+      "scene": "short-passenger-utterance",
+      "title": "A one-word interjection",
+      "proves": "a voice too short to place is flagged, not silently trusted",
+      "conditions": [
+        "short_utterance",
+        "sequential_speakers"
+      ],
+      "noiseSource": "recorded",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 3,
+        "slotsTotal": 3,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Bacon Stack"
+      ],
+      "expected": [
+        "1×Bacon Stack"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Bacon Stack:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 3,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        9,
+        382,
+        135
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "One Bacon Stack, please."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "Nuggets."
+        },
+        {
+          "who": "agent",
+          "text": "Which nuggets would you like, the chicken nuggets for four twenty-nine?"
+        },
+        {
+          "who": "customer",
+          "text": "No nuggets. That's everything."
+        },
+        {
+          "who": "agent",
+          "text": "That is one Bacon Stack for nine nineteen. Is that everything?"
+        }
+      ],
+      "trace": [
+        "255 session.updated",
+        "301 session.ready",
+        "301 reply.started",
+        "786 transcript.agent.delta",
+        "787 transcript.agent.delta",
+        "787 transcript.agent.delta",
+        "787 transcript.agent.delta",
+        "788 transcript.agent.delta",
+        "789 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "3457 transcript.agent",
+        "3950 reply.done",
+        "5474 input.speech.started",
+        "5474 transcript.user.delta",
+        "6673 transcript.user.delta",
+        "6976 input.speech.stopped",
+        "6976 transcript.user",
+        "6977 reply.started",
+        "8466 tool.call",
+        "10170 reply.done",
+        "10170 add_item({\"item\":\"Bacon Stack\",\"quantity\":1}) -> ok",
+        "10222 reply.started",
+        "11060 transcript.agent.delta",
+        "11061 transcript.agent.delta",
+        "11061 transcript.agent.delta",
+        "11061 transcript.agent.delta",
+        "13568 transcript.agent",
+        "13879 reply.done",
+        "15124 input.speech.started",
+        "15124 transcript.user.delta",
+        "15625 input.speech.stopped",
+        "15625 transcript.user",
+        "15627 reply.started",
+        "17287 tool.call",
+        "18539 reply.done",
+        "18539 get_menu({\"category\":\"chicken\"}) -> ok",
+        "18590 reply.started",
+        "19484 transcript.agent.delta",
+        "19484 transcript.agent.delta",
+        "19484 transcript.agent.delta",
+        "19484 transcript.agent.delta",
+        "19485 transcript.agent.delta",
+        "19485 transcript.agent.delta",
+        "19486 transcript.agent.delta",
+        "19487 transcript.agent.delta",
+        "19487 transcript.agent.delta",
+        "19487 transcript.agent.delta",
+        "19488 transcript.agent.delta",
+        "22789 transcript.agent",
+        "23109 reply.done",
+        "25124 input.speech.started",
+        "25124 transcript.user.delta",
+        "26726 input.speech.stopped",
+        "26726 transcript.user",
+        "26728 reply.started",
+        "27367 tool.call",
+        "29649 reply.done",
+        "29649 read_back_order({}) -> ok",
+        "29701 reply.started",
+        "30628 transcript.agent.delta",
+        "30629 transcript.agent.delta",
+        "30630 transcript.agent.delta",
+        "30630 transcript.agent.delta",
+        "30630 transcript.agent.delta",
+        "30630 transcript.agent.delta",
+        "30630 transcript.agent.delta",
+        "30631 transcript.agent.delta",
+        "30631 transcript.agent.delta",
+        "30631 transcript.agent.delta",
+        "30631 transcript.agent.delta",
+        "35012 transcript.agent",
+        "35319 reply.done",
+        "39494 session.ended"
+      ],
+      "durationMs": 39947
+    },
+    {
+      "scene": "mid-sentence-correction",
+      "title": "Actually, make that three",
+      "proves": "a correction changes the line instead of stacking a new one",
+      "conditions": [
+        "correction"
+      ],
+      "noiseSource": "recorded",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 3,
+        "slotsTotal": 3,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "3×Lab Burger"
+      ],
+      "expected": [
+        "3×Lab Burger"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Lab Burger:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 3,
+      "corrections": {
+        "expected": 1,
+        "landed": 1
+      },
+      "latencies": [
+        2042,
+        38
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "2 lab burgers, please."
+        },
+        {
+          "who": "customer",
+          "text": "Actually, make that 3 lab burgers."
+        },
+        {
+          "who": "agent",
+          "text": "Got it, three lab burgers. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "Nothing else."
+        },
+        {
+          "who": "agent",
+          "text": "I have three lab burgers for seventeen eighty-three. Is that everything?"
+        }
+      ],
+      "trace": [
+        "223 session.updated",
+        "269 session.ready",
+        "269 reply.started",
+        "738 transcript.agent.delta",
+        "738 transcript.agent.delta",
+        "739 transcript.agent.delta",
+        "739 transcript.agent.delta",
+        "740 transcript.agent.delta",
+        "740 transcript.agent.delta",
+        "740 transcript.agent.delta",
+        "740 transcript.agent.delta",
+        "740 transcript.agent.delta",
+        "3569 transcript.agent",
+        "4069 reply.done",
+        "5834 input.speech.started",
+        "5834 transcript.user.delta",
+        "7036 transcript.user.delta",
+        "7236 input.speech.stopped",
+        "7236 transcript.user",
+        "7237 reply.started",
+        "8134 input.speech.started",
+        "8770 tool.call",
+        "8879 reply.done",
+        "8880 add_item({\"item\":\"lab burger\",\"quantity\":2}) -> ok",
+        "9336 transcript.user.delta",
+        "9935 transcript.user",
+        "9936 input.speech.stopped",
+        "11838 reply.started",
+        "12386 tool.call",
+        "14679 reply.done",
+        "14680 modify_item({\"item\":\"lab burger\",\"quantity\":3}) -> ok",
+        "14731 reply.started",
+        "15593 transcript.agent.delta",
+        "15593 transcript.agent.delta",
+        "15594 transcript.agent.delta",
+        "15594 transcript.agent.delta",
+        "15595 transcript.agent.delta",
+        "15595 transcript.agent.delta",
+        "15595 transcript.agent.delta",
+        "19505 transcript.agent",
+        "19809 reply.done",
+        "21836 input.speech.started",
+        "21836 transcript.user.delta",
+        "22735 input.speech.stopped",
+        "22735 transcript.user",
+        "22737 reply.started",
+        "23406 tool.call",
+        "25689 reply.done",
+        "25689 read_back_order({}) -> ok",
+        "25740 reply.started",
+        "26730 transcript.agent.delta",
+        "26731 transcript.agent.delta",
+        "26731 transcript.agent.delta",
+        "26731 transcript.agent.delta",
+        "26731 transcript.agent.delta",
+        "26731 transcript.agent.delta",
+        "26731 transcript.agent.delta",
+        "26732 transcript.agent.delta",
+        "26732 transcript.agent.delta",
+        "26732 transcript.agent.delta",
+        "26732 transcript.agent.delta",
+        "31107 transcript.agent",
+        "31419 reply.done",
+        "35590 session.ended"
+      ],
+      "durationMs": 36034
+    },
+    {
+      "scene": "barge-in",
+      "title": "Talking over the read-back",
+      "proves": "semantic barge-in lands the correction the customer actually made",
+      "conditions": [
+        "interruption",
+        "correction"
+      ],
+      "noiseSource": "recorded",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 7,
+        "slotsTotal": 7,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Lab Burger+no pickles",
+        "1×Onion Rings"
+      ],
+      "expected": [
+        "1×Lab Burger",
+        "1×Onion Rings"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Lab Burger:A",
+        "Onion Rings:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 4,
+      "corrections": {
+        "expected": 1,
+        "landed": 1
+      },
+      "latencies": [
+        1554,
+        114
+      ],
+      "slowReplies": 1,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "A lab burger and onion rings."
+        },
+        {
+          "who": "customer",
+          "text": "Wait, no pickles on that burger."
+        },
+        {
+          "who": "agent",
+          "text": "No pickles on the lab burger. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "That's everything."
+        },
+        {
+          "who": "agent",
+          "text": "I have one lab burger with no pickles and one order of onion rings for nine seventy-two. Is that correct?"
+        }
+      ],
+      "trace": [
+        "301 session.updated",
+        "347 session.ready",
+        "347 reply.started",
+        "828 transcript.agent.delta",
+        "828 transcript.agent.delta",
+        "829 transcript.agent.delta",
+        "829 transcript.agent.delta",
+        "829 transcript.agent.delta",
+        "829 transcript.agent.delta",
+        "829 transcript.agent.delta",
+        "830 transcript.agent.delta",
+        "831 transcript.agent.delta",
+        "3736 transcript.agent",
+        "4100 reply.done",
+        "5725 input.speech.started",
+        "5725 transcript.user.delta",
+        "7023 transcript.user.delta",
+        "7822 transcript.user.delta",
+        "9041 input.speech.stopped",
+        "9041 transcript.user",
+        "9042 reply.started",
+        "9877 tool.call",
+        "9918 tool.call",
+        "11023 transcript.user.delta",
+        "12230 reply.done",
+        "12231 add_item({\"item\":\"lab burger\"}) -> ok",
+        "12232 add_item({\"item\":\"onion rings\"}) -> ok",
+        "12323 transcript.user.delta",
+        "12724 input.speech.stopped",
+        "12724 transcript.user",
+        "12726 reply.started",
+        "15784 tool.call",
+        "17650 reply.done",
+        "17651 modify_item({\"item\":\"lab burger\",\"remove_modifiers\":[\"pickles\"],\"whose\":\"mine\"}) -> ok",
+        "17703 reply.started",
+        "18603 transcript.agent.delta",
+        "18603 transcript.agent.delta",
+        "18603 transcript.agent.delta",
+        "18604 transcript.agent.delta",
+        "18605 transcript.agent.delta",
+        "18605 transcript.agent.delta",
+        "18605 transcript.agent.delta",
+        "18606 transcript.agent.delta",
+        "22194 transcript.agent",
+        "22499 reply.done",
+        "24422 input.speech.started",
+        "24423 transcript.user.delta",
+        "25425 input.speech.stopped",
+        "25425 transcript.user",
+        "25427 reply.started",
+        "26086 tool.call",
+        "28380 reply.done",
+        "28380 read_back_order({}) -> ok",
+        "28430 reply.started",
+        "29471 transcript.agent.delta",
+        "29471 transcript.agent.delta",
+        "29471 transcript.agent.delta",
+        "29472 transcript.agent.delta",
+        "29472 transcript.agent.delta",
+        "29472 transcript.agent.delta",
+        "29472 transcript.agent.delta",
+        "29472 transcript.agent.delta",
+        "29472 transcript.agent.delta",
+        "29472 transcript.agent.delta",
+        "29472 transcript.agent.delta",
+        "29472 transcript.agent.delta",
+        "29472 transcript.agent.delta",
+        "29473 transcript.agent.delta",
+        "29473 transcript.agent.delta",
+        "29473 transcript.agent.delta",
+        "29474 transcript.agent.delta",
+        "29474 transcript.agent.delta",
+        "29475 transcript.agent.delta",
+        "29475 transcript.agent.delta",
+        "35311 transcript.agent",
+        "35629 reply.done",
+        "39799 session.ended"
+      ],
+      "durationMs": 40163
+    },
+    {
+      "scene": "backchannel-not-interruption",
+      "title": "Uh-huh is not an interruption",
+      "proves": "back-channels do not cut the agent off",
+      "conditions": [
+        "interruption"
+      ],
+      "noiseSource": "recorded",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 7,
+        "slotsTotal": 7,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Cola/medium",
+        "1×Double Lab Burger"
+      ],
+      "expected": [
+        "1×Cola",
+        "1×Double Lab Burger"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Double Lab Burger:A",
+        "Cola:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 3,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        362,
+        2861,
+        245,
+        41
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "Let me get the double lab and a medium coke."
+        },
+        {
+          "who": "customer",
+          "text": "Uh-huh."
+        },
+        {
+          "who": "customer",
+          "text": "Right."
+        },
+        {
+          "who": "agent",
+          "text": "OK, a double lab and a medium coke. Anything else?"
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "That's it. Thanks."
+        },
+        {
+          "who": "agent",
+          "text": "I have one double lab and one medium coke for eleven forty-five. Is that everything?"
+        }
+      ],
+      "trace": [
+        "250 session.updated",
+        "296 session.ready",
+        "296 reply.started",
+        "762 transcript.agent.delta",
+        "763 transcript.agent.delta",
+        "763 transcript.agent.delta",
+        "763 transcript.agent.delta",
+        "763 transcript.agent.delta",
+        "764 transcript.agent.delta",
+        "764 transcript.agent.delta",
+        "764 transcript.agent.delta",
+        "765 transcript.agent.delta",
+        "3513 transcript.agent",
+        "4010 reply.done",
+        "5762 input.speech.started",
+        "5762 transcript.user.delta",
+        "6064 transcript.user.delta",
+        "7362 transcript.user.delta",
+        "8064 input.speech.stopped",
+        "8064 transcript.user",
+        "8065 reply.started",
+        "9131 tool.call",
+        "9194 tool.call",
+        "9964 transcript.user.delta",
+        "10562 input.speech.stopped",
+        "10563 transcript.user",
+        "11662 transcript.user.delta",
+        "11965 input.speech.stopped",
+        "11965 transcript.user",
+        "16870 reply.done",
+        "16871 add_item({\"item\":\"double lab\"}) -> ok",
+        "16872 add_item({\"item\":\"coke\",\"size\":\"medium\"}) -> ok",
+        "16923 reply.started",
+        "17590 transcript.agent.delta",
+        "17591 transcript.agent.delta",
+        "17591 transcript.agent.delta",
+        "17591 transcript.agent.delta",
+        "17591 transcript.agent.delta",
+        "17592 transcript.agent.delta",
+        "17593 transcript.agent.delta",
+        "17593 transcript.agent.delta",
+        "17593 transcript.agent.delta",
+        "17593 transcript.agent.delta",
+        "22403 transcript.agent",
+        "22405 transcript.agent.delta",
+        "22405 transcript.agent.delta",
+        "22406 transcript.agent.delta",
+        "22407 transcript.agent.delta",
+        "24993 transcript.agent",
+        "25230 reply.done",
+        "27263 input.speech.started",
+        "27264 transcript.user.delta",
+        "28463 input.speech.stopped",
+        "28463 transcript.user",
+        "28466 reply.started",
+        "29131 tool.call",
+        "31419 reply.done",
+        "31419 read_back_order({}) -> ok",
+        "31470 reply.started",
+        "32504 transcript.agent.delta",
+        "32504 transcript.agent.delta",
+        "32504 transcript.agent.delta",
+        "32504 transcript.agent.delta",
+        "32504 transcript.agent.delta",
+        "32504 transcript.agent.delta",
+        "32504 transcript.agent.delta",
+        "32505 transcript.agent.delta",
+        "32505 transcript.agent.delta",
+        "32505 transcript.agent.delta",
+        "32505 transcript.agent.delta",
+        "32505 transcript.agent.delta",
+        "32506 transcript.agent.delta",
+        "32506 transcript.agent.delta",
+        "32506 transcript.agent.delta",
+        "38344 transcript.agent",
+        "38670 reply.done",
+        "42846 session.ended"
+      ],
+      "durationMs": 43318
+    },
+    {
+      "scene": "prank-nuggets",
+      "title": "Two hundred and sixty nuggets",
+      "proves": "the order that ended a real drive-thru pilot never reaches the kitchen",
+      "conditions": [
+        "absurd_quantity"
+      ],
+      "noiseSource": "recorded",
+      "pass": false,
+      "failures": [
+        "false add 260×Chicken Nuggets",
+        "must not contain Chicken Nuggets",
+        "escalated: got false want true"
+      ],
+      "score": {
+        "orderExactMatch": false,
+        "slotAccuracy": 1,
+        "slotsMatched": 0,
+        "slotsTotal": 0,
+        "falseAdds": 1,
+        "missing": 0,
+        "ownerAccuracy": null,
+        "unknownSpeakerRate": 0,
+        "notes": [
+          "false add 260×Chicken Nuggets"
+        ]
+      },
+      "ticket": [
+        "260×Chicken Nuggets"
+      ],
+      "expected": [],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": true,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Chicken Nuggets:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 1,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        285
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "I want 260 chicken nuggets."
+        },
+        {
+          "who": "agent",
+          "text": "Got those nuggets. Anything else?"
+        }
+      ],
+      "trace": [
+        "278 session.updated",
+        "325 session.ready",
+        "325 reply.started",
+        "789 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "790 transcript.agent.delta",
+        "3544 transcript.agent",
+        "4043 reply.done",
+        "5791 input.speech.started",
+        "5791 transcript.user.delta",
+        "7090 transcript.user.delta",
+        "8093 input.speech.stopped",
+        "8093 transcript.user",
+        "8105 reply.started",
+        "8934 tool.call",
+        "11232 reply.done",
+        "11233 add_item({\"item\":\"chicken nuggets\",\"quantity\":260}) -> ok",
+        "11285 reply.started",
+        "12108 transcript.agent.delta",
+        "12108 transcript.agent.delta",
+        "12108 transcript.agent.delta",
+        "12108 transcript.agent.delta",
+        "12108 transcript.agent.delta",
+        "14776 transcript.agent",
+        "15092 reply.done",
+        "19262 session.ended"
+      ],
+      "durationMs": 19610
+    },
+    {
+      "scene": "prank-waters",
+      "title": "Eighteen thousand cups of water",
+      "proves": "an absurd quantity becomes a human handover, not a kitchen ticket",
+      "conditions": [
+        "absurd_quantity"
+      ],
+      "noiseSource": "recorded",
+      "pass": false,
+      "failures": [
+        "false add 18000×Bottled Water",
+        "must not contain Bottled Water",
+        "escalated: got false want true"
+      ],
+      "score": {
+        "orderExactMatch": false,
+        "slotAccuracy": 1,
+        "slotsMatched": 0,
+        "slotsTotal": 0,
+        "falseAdds": 1,
+        "missing": 0,
+        "ownerAccuracy": null,
+        "unknownSpeakerRate": 0,
+        "notes": [
+          "false add 18000×Bottled Water"
+        ]
+      },
+      "ticket": [
+        "18000×Bottled Water"
+      ],
+      "expected": [],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": true,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Bottled Water:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 1,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        171
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "Can I get 18,000 cups of water, please?"
+        },
+        {
+          "who": "agent",
+          "text": "Eighteen thousand waters. Anything else?"
+        }
+      ],
+      "trace": [
+        "232 session.updated",
+        "277 session.ready",
+        "277 reply.started",
+        "747 transcript.agent.delta",
+        "747 transcript.agent.delta",
+        "747 transcript.agent.delta",
+        "747 transcript.agent.delta",
+        "747 transcript.agent.delta",
+        "747 transcript.agent.delta",
+        "748 transcript.agent.delta",
+        "748 transcript.agent.delta",
+        "748 transcript.agent.delta",
+        "3259 transcript.agent",
+        "3767 reply.done",
+        "5442 input.speech.started",
+        "5443 transcript.user.delta",
+        "5841 transcript.user.delta",
+        "7041 transcript.user.delta",
+        "7844 input.speech.stopped",
+        "7844 transcript.user",
+        "7845 reply.started",
+        "10166 tool.call",
+        "11866 reply.done",
+        "11867 add_item({\"item\":\"water\",\"quantity\":18000}) -> ok",
+        "11917 reply.started",
+        "12728 transcript.agent.delta",
+        "12729 transcript.agent.delta",
+        "12729 transcript.agent.delta",
+        "12729 transcript.agent.delta",
+        "12729 transcript.agent.delta",
+        "15800 transcript.agent",
+        "16116 reply.done",
+        "20289 session.ended"
+      ],
+      "durationMs": 20670
+    },
+    {
+      "scene": "repeat-loop",
+      "title": "Saying it twice because the speaker is bad",
+      "proves": "a repeated item is a question, not a second burger",
+      "conditions": [
+        "car_5db"
+      ],
+      "noiseSource": "recorded",
+      "pass": false,
+      "failures": [
+        "false add 1×Bacon Stack"
+      ],
+      "score": {
+        "orderExactMatch": false,
+        "slotAccuracy": 1,
+        "slotsMatched": 3,
+        "slotsTotal": 3,
+        "falseAdds": 1,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": [
+          "false add 1×Bacon Stack"
+        ]
+      },
+      "ticket": [
+        "1×Bacon Stack",
+        "1×Bacon Stack"
+      ],
+      "expected": [
+        "1×Bacon Stack"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 0,
+      "driver": "A",
+      "owners": [
+        "Bacon Stack:A",
+        "Bacon Stack:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 3,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        194,
+        242,
+        157
+      ],
+      "slowReplies": 0,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "One Bacon Stack."
+        },
+        {
+          "who": "agent",
+          "text": "Got one Bacon Stack. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "One Bacon Stack."
+        },
+        {
+          "who": "agent",
+          "text": "Another Bacon Stack. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "Just the one. That's everything."
+        },
+        {
+          "who": "agent",
+          "text": "I'm sorry, I didn't catch that. Which Bacon Stack did you mean?"
+        }
+      ],
+      "trace": [
+        "243 session.updated",
+        "289 session.ready",
+        "289 reply.started",
+        "753 transcript.agent.delta",
+        "753 transcript.agent.delta",
+        "754 transcript.agent.delta",
+        "754 transcript.agent.delta",
+        "754 transcript.agent.delta",
+        "754 transcript.agent.delta",
+        "754 transcript.agent.delta",
+        "754 transcript.agent.delta",
+        "754 transcript.agent.delta",
+        "3348 transcript.agent",
+        "3857 reply.done",
+        "5257 input.speech.started",
+        "5257 transcript.user.delta",
+        "6459 input.speech.stopped",
+        "6459 transcript.user",
+        "6460 reply.started",
+        "7964 tool.call",
+        "9646 reply.done",
+        "9647 add_item({\"item\":\"Bacon Stack\",\"quantity\":1}) -> ok",
+        "9698 reply.started",
+        "10513 transcript.agent.delta",
+        "10513 transcript.agent.delta",
+        "10513 transcript.agent.delta",
+        "10514 transcript.agent.delta",
+        "10514 transcript.agent.delta",
+        "10514 transcript.agent.delta",
+        "13260 transcript.agent",
+        "13576 reply.done",
+        "14956 input.speech.started",
+        "14956 transcript.user.delta",
+        "16157 transcript.user",
+        "16159 reply.started",
+        "16159 input.speech.stopped",
+        "17688 tool.call",
+        "19096 reply.done",
+        "19097 add_item({\"item\":\"Bacon Stack\",\"quantity\":1}) -> ok",
+        "19149 reply.started",
+        "19938 transcript.agent.delta",
+        "19949 transcript.agent.delta",
+        "19949 transcript.agent.delta",
+        "19949 transcript.agent.delta",
+        "19950 transcript.agent.delta",
+        "22550 transcript.agent",
+        "22866 reply.done",
+        "24756 input.speech.started",
+        "24757 transcript.user.delta",
+        "25057 transcript.user.delta",
+        "26358 transcript.user",
+        "26360 reply.started",
+        "26360 input.speech.stopped",
+        "27028 tool.call",
+        "29316 reply.done",
+        "29317 modify_item({\"item\":\"Bacon Stack\",\"quantity\":1}) -> rejected",
+        "29369 reply.started",
+        "30395 transcript.agent.delta",
+        "30395 transcript.agent.delta",
+        "30395 transcript.agent.delta",
+        "30395 transcript.agent.delta",
+        "30396 transcript.agent.delta",
+        "30396 transcript.agent.delta",
+        "30396 transcript.agent.delta",
+        "30396 transcript.agent.delta",
+        "30397 transcript.agent.delta",
+        "30397 transcript.agent.delta",
+        "30397 transcript.agent.delta",
+        "30397 transcript.agent.delta",
+        "34856 transcript.agent",
+        "35176 reply.done",
+        "39345 session.ended"
+      ],
+      "durationMs": 39826
+    },
+    {
+      "scene": "code-switch",
+      "title": "Spanish and English in one sentence",
+      "proves": "code-switching is understood without switching modes",
+      "conditions": [
+        "code_switch"
+      ],
+      "noiseSource": "recorded",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 7,
+        "slotsTotal": 7,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Cola/large",
+        "2×Lab Burger"
+      ],
+      "expected": [
+        "1×Cola",
+        "2×Lab Burger"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Cola:A",
+        "Lab Burger:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 3,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        49,
+        53
+      ],
+      "slowReplies": 1,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "Quiero dos hamburguesas and a large Coke, por favor."
+        },
+        {
+          "who": "agent",
+          "text": "Got two burgers and a large Coke. Anything else?"
+        },
+        {
+          "who": "customer",
+          "text": "Eso es todo."
+        },
+        {
+          "who": "customer",
+          "text": "That's everything."
+        },
+        {
+          "who": "agent",
+          "text": "I have two Lab Burgers and one large Cola. Is that correct?"
+        },
+        {
+          "who": "agent",
+          "text": "I have one large Coke and two Lab Burgers for fifteen thirty-four. Is that everything?"
+        }
+      ],
+      "trace": [
+        "278 session.updated",
+        "324 session.ready",
+        "325 reply.started",
+        "806 transcript.agent.delta",
+        "807 transcript.agent.delta",
+        "807 transcript.agent.delta",
+        "807 transcript.agent.delta",
+        "808 transcript.agent.delta",
+        "808 transcript.agent.delta",
+        "809 transcript.agent.delta",
+        "809 transcript.agent.delta",
+        "809 transcript.agent.delta",
+        "3790 transcript.agent",
+        "4308 reply.done",
+        "5299 input.speech.started",
+        "5299 transcript.user.delta",
+        "6598 transcript.user.delta",
+        "7898 transcript.user.delta",
+        "8699 input.speech.stopped",
+        "8700 transcript.user",
+        "8701 reply.started",
+        "9666 tool.call",
+        "10191 tool.call",
+        "11968 reply.done",
+        "11969 add_item({\"item\":\"Coke\",\"size\":\"large\"}) -> ok",
+        "11969 add_item({\"item\":\"hamburguesas\",\"quantity\":2}) -> ok",
+        "12021 reply.started",
+        "12920 transcript.agent.delta",
+        "12920 transcript.agent.delta",
+        "12921 transcript.agent.delta",
+        "12921 transcript.agent.delta",
+        "12921 transcript.agent.delta",
+        "12921 transcript.agent.delta",
+        "12921 transcript.agent.delta",
+        "12921 transcript.agent.delta",
+        "12921 transcript.agent.delta",
+        "16434 transcript.agent",
+        "16758 reply.done",
+        "18096 input.speech.started",
+        "18098 transcript.user.delta",
+        "18901 input.speech.stopped",
+        "18901 transcript.user",
+        "18903 reply.started",
+        "19565 tool.call",
+        "19897 transcript.user.delta",
+        "20801 transcript.user",
+        "20802 input.speech.stopped",
+        "24188 reply.done",
+        "24188 read_back_order({}) -> ok",
+        "24240 reply.started",
+        "24910 transcript.agent.delta",
+        "24910 transcript.agent.delta",
+        "24911 transcript.agent.delta",
+        "24911 transcript.agent.delta",
+        "24911 transcript.agent.delta",
+        "24911 transcript.agent.delta",
+        "24911 transcript.agent.delta",
+        "24912 transcript.agent.delta",
+        "24913 transcript.agent.delta",
+        "24913 transcript.agent.delta",
+        "24913 transcript.agent.delta",
+        "24913 transcript.agent.delta",
+        "29184 transcript.agent",
+        "29187 transcript.agent.delta",
+        "29188 transcript.agent.delta",
+        "29188 transcript.agent.delta",
+        "29188 transcript.agent.delta",
+        "29188 transcript.agent.delta",
+        "29189 transcript.agent.delta",
+        "29189 transcript.agent.delta",
+        "29189 transcript.agent.delta",
+        "29190 transcript.agent.delta",
+        "29190 transcript.agent.delta",
+        "29190 transcript.agent.delta",
+        "29191 transcript.agent.delta",
+        "29191 transcript.agent.delta",
+        "29191 transcript.agent.delta",
+        "29191 transcript.agent.delta",
+        "34525 transcript.agent",
+        "34758 reply.done",
+        "38927 session.ended"
+      ],
+      "durationMs": 39390
+    },
+    {
+      "scene": "not-on-menu",
+      "title": "Something we do not sell",
+      "proves": "the agent does not invent a product",
+      "conditions": [
+        "clean"
+      ],
+      "noiseSource": "none",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 3,
+        "slotsTotal": 3,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Lab Burger"
+      ],
+      "expected": [
+        "1×Lab Burger"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Lab Burger:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 2,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        78,
+        190
+      ],
+      "slowReplies": 1,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "Do you have a lobster roll?"
+        },
+        {
+          "who": "agent",
+          "text": "No, we don't have lobster rolls. We do have things like the Lab Burger, the Bacon Stack, or the Crispy Chicken Sandwich."
+        },
+        {
+          "who": "customer",
+          "text": "Okay, just a Lab Burger then."
+        },
+        {
+          "who": "customer",
+          "text": "That's all."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        }
+      ],
+      "trace": [
+        "233 session.updated",
+        "280 session.ready",
+        "280 reply.started",
+        "756 transcript.agent.delta",
+        "756 transcript.agent.delta",
+        "757 transcript.agent.delta",
+        "757 transcript.agent.delta",
+        "757 transcript.agent.delta",
+        "757 transcript.agent.delta",
+        "757 transcript.agent.delta",
+        "759 transcript.agent.delta",
+        "759 transcript.agent.delta",
+        "3506 transcript.agent",
+        "4019 reply.done",
+        "5852 input.speech.started",
+        "5854 transcript.user.delta",
+        "6955 input.speech.stopped",
+        "6955 transcript.user",
+        "6957 reply.started",
+        "8458 tool.call",
+        "10758 reply.done",
+        "10758 get_menu({}) -> ok",
+        "10810 reply.started",
+        "11911 transcript.agent.delta",
+        "11912 transcript.agent.delta",
+        "11912 transcript.agent.delta",
+        "11912 transcript.agent.delta",
+        "11912 transcript.agent.delta",
+        "11912 transcript.agent.delta",
+        "11913 transcript.agent.delta",
+        "11913 transcript.agent.delta",
+        "11913 transcript.agent.delta",
+        "11914 transcript.agent.delta",
+        "11914 transcript.agent.delta",
+        "11914 transcript.agent.delta",
+        "11914 transcript.agent.delta",
+        "11916 transcript.agent.delta",
+        "11916 transcript.agent.delta",
+        "11916 transcript.agent.delta",
+        "11919 transcript.agent.delta",
+        "11919 transcript.agent.delta",
+        "11919 transcript.agent.delta",
+        "11919 transcript.agent.delta",
+        "11920 transcript.agent.delta",
+        "11920 transcript.agent.delta",
+        "18671 transcript.agent",
+        "18978 reply.done",
+        "21153 input.speech.started",
+        "21153 transcript.user.delta",
+        "22354 transcript.user.delta",
+        "22954 transcript.user",
+        "22956 reply.started",
+        "22956 input.speech.stopped",
+        "23956 input.speech.started",
+        "23957 input.speech.stopped",
+        "24256 transcript.user",
+        "24585 tool.call",
+        "26868 reply.done",
+        "26869 add_item({\"item\":\"Lab Burger\"}) -> ok",
+        "26922 reply.started",
+        "27723 transcript.agent.delta",
+        "27724 transcript.agent.delta",
+        "27724 transcript.agent.delta",
+        "27724 transcript.agent.delta",
+        "29999 transcript.agent",
+        "30311 reply.done",
+        "34481 session.ended"
+      ],
+      "durationMs": 34823
+    },
+    {
+      "scene": "ambiguous-chicken",
+      "title": "Just 'chicken'",
+      "proves": "two plausible items produce a question, not a coin flip",
+      "conditions": [
+        "clean"
+      ],
+      "noiseSource": "none",
+      "pass": true,
+      "failures": [],
+      "score": {
+        "orderExactMatch": true,
+        "slotAccuracy": 1,
+        "slotsMatched": 3,
+        "slotsTotal": 3,
+        "falseAdds": 0,
+        "missing": 0,
+        "ownerAccuracy": 1,
+        "unknownSpeakerRate": 0,
+        "notes": []
+      },
+      "ticket": [
+        "1×Crispy Chicken Sandwich"
+      ],
+      "expected": [
+        "1×Crispy Chicken Sandwich"
+      ],
+      "held": 0,
+      "escalated": false,
+      "escalationExpected": false,
+      "voices": 1,
+      "driver": "A",
+      "owners": [
+        "Crispy Chicken Sandwich:A"
+      ],
+      "revisedTurns": 0,
+      "reattributed": [],
+      "bargeIns": 0,
+      "toolCalls": 2,
+      "corrections": {
+        "expected": 0,
+        "landed": 0
+      },
+      "latencies": [
+        279,
+        92
+      ],
+      "slowReplies": 1,
+      "transcript": [
+        {
+          "who": "agent",
+          "text": "Welcome to Burger Lab, what can I get you?"
+        },
+        {
+          "who": "customer",
+          "text": "Let me get the chicken."
+        },
+        {
+          "who": "agent",
+          "text": "We have chicken nuggets for four twenty-nine, a chicken wrap for five twenty-nine, or a crispy chicken sandwich for six seventy-nine. Which one would you like?"
+        },
+        {
+          "who": "customer",
+          "text": "The Crispy Chicken Sandwich."
+        },
+        {
+          "who": "customer",
+          "text": "That's everything."
+        },
+        {
+          "who": "agent",
+          "text": "Got it. Anything else?"
+        }
+      ],
+      "trace": [
+        "262 session.updated",
+        "308 session.ready",
+        "308 reply.started",
+        "786 transcript.agent.delta",
+        "786 transcript.agent.delta",
+        "786 transcript.agent.delta",
+        "786 transcript.agent.delta",
+        "786 transcript.agent.delta",
+        "786 transcript.agent.delta",
+        "786 transcript.agent.delta",
+        "787 transcript.agent.delta",
+        "787 transcript.agent.delta",
+        "3531 transcript.agent",
+        "4051 reply.done",
+        "5780 input.speech.started",
+        "5781 transcript.user.delta",
+        "6782 transcript.user",
+        "6783 reply.started",
+        "6784 input.speech.stopped",
+        "8990 tool.call",
+        "11301 reply.done",
+        "11301 get_menu({\"category\":\"chicken\"}) -> ok",
+        "11352 reply.started",
+        "12512 transcript.agent.delta",
+        "12512 transcript.agent.delta",
+        "12512 transcript.agent.delta",
+        "12512 transcript.agent.delta",
+        "12512 transcript.agent.delta",
+        "12513 transcript.agent.delta",
+        "12513 transcript.agent.delta",
+        "12513 transcript.agent.delta",
+        "12513 transcript.agent.delta",
+        "12514 transcript.agent.delta",
+        "12514 transcript.agent.delta",
+        "12514 transcript.agent.delta",
+        "12514 transcript.agent.delta",
+        "12514 transcript.agent.delta",
+        "12515 transcript.agent.delta",
+        "12515 transcript.agent.delta",
+        "12516 transcript.agent.delta",
+        "12516 transcript.agent.delta",
+        "12516 transcript.agent.delta",
+        "12516 transcript.agent.delta",
+        "12517 transcript.agent.delta",
+        "12517 transcript.agent.delta",
+        "12517 transcript.agent.delta",
+        "12517 transcript.agent.delta",
+        "12517 transcript.agent.delta",
+        "12517 transcript.agent.delta",
+        "20647 transcript.agent",
+        "20971 reply.done",
+        "22880 input.speech.started",
+        "22881 transcript.user.delta",
+        "23079 transcript.user.delta",
+        "24282 input.speech.stopped",
+        "24282 transcript.user",
+        "24284 reply.started",
+        "25180 input.speech.started",
+        "25382 input.speech.stopped",
+        "25481 transcript.user",
+        "26306 tool.call",
+        "28210 reply.done",
+        "28211 add_item({\"item\":\"Crispy Chicken Sandwich\"}) -> ok",
+        "28263 reply.started",
+        "29072 transcript.agent.delta",
+        "29072 transcript.agent.delta",
+        "29072 transcript.agent.delta",
+        "29072 transcript.agent.delta",
+        "31510 transcript.agent",
+        "31831 reply.done",
+        "36008 session.ended"
+      ],
+      "durationMs": 36443
+    }
+  ]
+}
