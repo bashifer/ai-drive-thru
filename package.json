@@ -6,7 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:engine": "tsx --test tests/*.test.ts",
+    "bench:tts": "tsx bench/tts.ts",
+    "bench": "tsx bench/run.ts",
+    "typecheck": "tsc --noEmit",
+    "clips": "tsx bench/clips.ts",
+    "bench:orders": "tsx bench/order-bench.ts",
+    "fetch:noise": "tsx bench/fetch-noise.ts"
   },
   "dependencies": {
     "next": "16.3.5",
@@ -18,9 +25,12 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.18.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.23.13",
+    "typescript": "^5",
+    "ws": "^8.21.3"
   }
 }

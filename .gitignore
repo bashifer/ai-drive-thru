@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# keep the template in git
+!.env.example
+
+# generated speech for bench scenes (regenerate with `npm run bench:tts`)
+bench/cache/
+
+# downloaded corpora (CC BY / CC BY-NC) — fetched by scripts, never committed
+bench/data/
