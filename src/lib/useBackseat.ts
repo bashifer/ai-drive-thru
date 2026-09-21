@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { AudioEngine, type InjectedClip } from "./audio";
 import { RoomEar, guestName, type SpeakerRevision } from "./attribution";
-import { buildSessionConfig, DEFAULT_GREETING, type AgentOptions } from "./agentConfig";
+import { buildSessionConfig, DEFAULT_GREETING, systemPromptFor, type AgentOptions } from "./agentConfig";
 import { menuKeyterms, resolveMenuItem } from "./menu";
 import { OrderEngine, type OrderSnapshot, type Outcome } from "./orderEngine";
 import { clipUrl, type Scenario, type ScenarioCue } from "./scenarios";
@@ -109,6 +109,7 @@ export function useBackseat() {
   /** A scripted line has been played and the agent has not taken its turn yet. */
   const awaitingAgentTurn = useRef(false);
   const scenarioRunning = useRef(false);
+  const daypartRef = useRef<"breakfast" | "allday">("allday");
 
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -524,7 +525,7 @@ export function useBackseat() {
         });
 
         await Promise.all([
-          agent.connect(buildSessionConfig(opts)),
+          agent.connect(buildSessionConfig({ ...opts, daypart: daypartRef.current })),
           stt.connect({
             keyterms: menuKeyterms(100),
             agentContext: opts.greeting ?? DEFAULT_GREETING,
@@ -585,17 +586,15 @@ export function useBackseat() {
 
   const setDaypart = useCallback(
     (daypart: "breakfast" | "allday") => {
+      daypartRef.current = daypart;
       orderRef.current.setDaypart(daypart);
       shadowRef.current.setDaypart(daypart);
       syncOrder();
       // Keyterms and the prompt are mutable mid-session: the lane switches menus
-      // without dropping the call.
+      // without dropping the call. The prompt goes whole, because an update replaces it.
       agentRef.current?.updateSession({
         input: { keyterms: menuKeyterms(100) },
-        system_prompt:
-          daypart === "breakfast"
-            ? "Breakfast menu only until 10:30. Politely decline burgers and offer the breakfast equivalent."
-            : undefined,
+        system_prompt: systemPromptFor(daypart),
       });
       pushEvent({ ear: "agent", label: `menu switched to ${daypart}`, detail: "session.update, no reconnect" });
     },

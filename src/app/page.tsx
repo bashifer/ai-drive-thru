@@ -114,6 +114,7 @@ export default function Home() {
             onRun={backseat.runScenario}
             engineNoise={engineNoise}
             onToggleNoise={() => setEngineNoise(backseat.toggleNoise("engine", 0.22))}
+            daypart={order.daypart}
             onDaypart={backseat.setDaypart}
           />
         </section>
@@ -540,6 +541,7 @@ function RegressionPanel({
   onRun,
   engineNoise,
   onToggleNoise,
+  daypart,
   onDaypart,
 }: {
   live: boolean;
@@ -548,6 +550,7 @@ function RegressionPanel({
   onRun: (scenario: (typeof SCENARIOS)[number]) => void;
   engineNoise: boolean;
   onToggleNoise: () => void;
+  daypart: "breakfast" | "allday";
   onDaypart: (d: "breakfast" | "allday") => void;
 }) {
   return (
@@ -649,11 +652,13 @@ function RegressionPanel({
           Engine noise {engineNoise ? "on" : "off"}
         </button>
         <button
-          onClick={() => onDaypart("breakfast")}
+          onClick={() => onDaypart(daypart === "breakfast" ? "allday" : "breakfast")}
           disabled={!live}
-          className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-medium transition hover:bg-white/5 disabled:opacity-40"
+          className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:opacity-40 ${
+            daypart === "breakfast" ? "border-amber-400/50 bg-amber-400/15 text-amber-200" : "border-white/15 hover:bg-white/5"
+          }`}
         >
-          Switch to breakfast
+          {daypart === "breakfast" ? "Breakfast menu · back to all-day" : "Switch to breakfast"}
         </button>
       </div>
     </section>

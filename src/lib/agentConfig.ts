@@ -42,6 +42,19 @@ CLOSING
 - When they are done, call read_back_order, read it back once, then call finalize_order and ask them to pull forward.
 - If the read-back names items that were heard but not placed with a voice, ask about those in the same breath: "and nuggets — is that yours?" One question, not one per item.`;
 
+/** Added while breakfast is served; every other rule still applies. */
+const BREAKFAST_RULES = `BREAKFAST
+- Breakfast menu only until 10:30. Politely decline burgers and offer the breakfast equivalent.`;
+
+/**
+ * The whole prompt for a daypart. A mid-session `session.update` replaces the prompt
+ * rather than adding to it, so a breakfast note sent on its own would leave the agent
+ * with one line and none of the ordering rules.
+ */
+export function systemPromptFor(daypart: "breakfast" | "allday" = "allday") {
+  return daypart === "breakfast" ? `${SYSTEM_PROMPT}\n\n${BREAKFAST_RULES}` : SYSTEM_PROMPT;
+}
+
 export const TRANSCRIPTION_PROMPT = `Drive-thru ordering at Burger Lab. Expect menu items (Lab Burger, Double Lab, Bacon Stack, Crispy Chicken, nuggets, fries, onion rings, milkshake, apple pie), sizes (small, medium, large), quantities as digits, and modifiers such as "no pickles", "extra cheese", "add bacon". Customers interrupt, correct themselves and sometimes switch between English and Spanish mid sentence. Background: engine noise, wind, car radio, children.`;
 
 const itemParam = {
@@ -233,13 +246,14 @@ export type AgentOptions = {
   voiceFocusThreshold?: number;
   transcriptionMode?: "min_latency" | "balanced" | "max_accuracy";
   greeting?: string;
+  daypart?: "breakfast" | "allday";
 };
 
 export const DEFAULT_GREETING = "Welcome to Burger Lab, what can I get you?";
 
 export function buildSessionConfig(opts: AgentOptions = {}): SessionConfig {
   return {
-    system_prompt: SYSTEM_PROMPT,
+    system_prompt: systemPromptFor(opts.daypart),
     greeting: opts.greeting ?? DEFAULT_GREETING,
     tools: TOOLS,
     input: {
