@@ -458,47 +458,58 @@ function BackseatLines({ order }: { order: OrderSnapshot }) {
     list.push(line);
     groups.set(line.owner, list);
   }
+  // One bag per person once there is more than one: whose food, and what it comes to.
+  const bags = groups.size > 1;
 
   return (
     <>
-      {Array.from(groups.entries()).map(([owner, lines]) => (
-        <div key={owner}>
-          <div className="mb-2 flex items-center gap-2">
-            <span
-              className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
-                owner === DRIVER || owner === order.driver
-                  ? "bg-emerald-400/15 text-emerald-300"
-                  : owner === UNASSIGNED
-                    ? "bg-slate-400/15 text-slate-300"
-                    : "bg-sky-400/15 text-sky-300"
-              }`}
-            >
-              {ownerLabel(owner, order.driver)}
-            </span>
-          </div>
-          <ul className="space-y-1.5">
-            {lines.map((line) => (
-              <li
-                key={line.lineId}
-                className={`flex items-baseline justify-between gap-3 rounded-lg px-3 py-2 ${
-                  line.status === "pending" ? "border border-amber-400/30 bg-amber-400/5" : "bg-white/[0.03]"
+      {Array.from(groups.entries()).map(([owner, lines]) => {
+        const booked = lines.filter((l) => l.status === "confirmed");
+        const subtotal = booked.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
+        return (
+          <div key={owner} className={bags ? "rounded-xl border border-white/[0.06] p-2" : undefined}>
+            <div className="mb-2 flex items-center gap-2">
+              <span
+                className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
+                  owner === DRIVER || owner === order.driver
+                    ? "bg-emerald-400/15 text-emerald-300"
+                    : owner === UNASSIGNED
+                      ? "bg-slate-400/15 text-slate-300"
+                      : "bg-sky-400/15 text-sky-300"
                 }`}
               >
-                <div>
-                  <LineText line={line} />
-                  {line.status === "pending" && (
-                    <div className="mt-0.5 text-xs text-amber-300">held — waiting for the driver to confirm</div>
-                  )}
-                  {line.status === "confirmed" && line.unverified && (
-                    <div className="mt-0.5 text-xs text-slate-500">heard, but no voice match yet</div>
-                  )}
-                </div>
-                <LinePrice line={line} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+                {ownerLabel(owner, order.driver)}
+              </span>
+              {bags && (
+                <span className="ml-auto pr-1 text-xs tabular-nums text-slate-400">
+                  {booked.length ? `$${money(subtotal)}` : "nothing booked yet"}
+                </span>
+              )}
+            </div>
+            <ul className="space-y-1.5">
+              {lines.map((line) => (
+                <li
+                  key={line.lineId}
+                  className={`flex items-baseline justify-between gap-3 rounded-lg px-3 py-2 ${
+                    line.status === "pending" ? "border border-amber-400/30 bg-amber-400/5" : "bg-white/[0.03]"
+                  }`}
+                >
+                  <div>
+                    <LineText line={line} />
+                    {line.status === "pending" && (
+                      <div className="mt-0.5 text-xs text-amber-300">held — waiting for the driver to confirm</div>
+                    )}
+                    {line.status === "confirmed" && line.unverified && (
+                      <div className="mt-0.5 text-xs text-slate-500">heard, but no voice match yet</div>
+                    )}
+                  </div>
+                  <LinePrice line={line} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
     </>
   );
 }
