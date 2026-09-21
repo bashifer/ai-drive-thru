@@ -46,6 +46,7 @@ class PCMProcessor extends AudioWorkletProcessor {
     this.agent = new LinearResampler(inRate / agentRate, Math.round((agentRate * chunkMs) / 1000));
     this.stt = new LinearResampler(inRate / sttRate, Math.round((sttRate * chunkMs) / 1000));
     this.muted = false;
+    this.silence = new Float32Array(128);
 
     this.port.onmessage = (e) => {
       if (e.data && e.data.type === "mute") this.muted = !!e.data.value;
@@ -53,8 +54,12 @@ class PCMProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs) {
-    const input = inputs[0]?.[0];
-    if (!input || this.muted) return true;
+    // Silence is still audio. With no microphone the bus has no input between
+    // injected clips; sending nothing then would stall both streams, and the room
+    // ear's word timings (audio time) would drift away from the wall clock the
+    // attribution window is measured in — every voice would come back unplaced.
+    const live = inputs[0]?.[0];
+    const input = live && !this.muted ? live : this.silence;
 
     this.agent.push(input, (buf) => this.port.postMessage({ kind: "agent", buf }, [buf]));
     this.stt.push(input, (buf) => this.port.postMessage({ kind: "stt", buf }, [buf]));

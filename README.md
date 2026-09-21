@@ -269,6 +269,13 @@ every item; the model reaches for `modifiers` where the schema says `add_modifie
 corrections were acknowledged out loud but never applied; `chocolate` matched the alias
 `cola` by substring; and an interrupted reply dropped the tool calls it had already made.
 
+The A/B view caught one the bench could not. With the microphone declined, the browser sent
+no audio at all between injected clips. The room ear times words in audio, not in seconds,
+so its clock fell further behind the wall clock with every pause, and within a minute every
+voice came back unplaced — a kid's milkshake was booked like the driver's burger. The bench
+streams a frame every 50 ms whatever is playing, which is why it never saw this. The page now
+sends silence as audio, the way a live microphone does.
+
 ## Project layout
 
 ```
