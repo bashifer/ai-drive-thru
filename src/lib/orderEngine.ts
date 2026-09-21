@@ -169,6 +169,8 @@ export class OrderEngine {
   private driver: string | null = null;
   /** Whether the room ear has actually confirmed that voice as the primary one. */
   private driverConfident = false;
+  /** An item said twice in a row that the agent is asking about: "did you want a second one?" */
+  private repeatQuestion: { itemId: string; name: string; at: number } | null = null;
 
   constructor(opts: EngineOptions = {}) {
     this.guards = opts.guards ?? true;
@@ -204,6 +206,7 @@ export class OrderEngine {
     this.finalized = false;
     this.driver = null;
     this.driverConfident = false;
+    this.repeatQuestion = null;
   }
 
   private flag(kind: OrderFlag["kind"], message: string) {
@@ -316,33 +319,37 @@ export class OrderEngine {
       };
     }
 
+    const speaker = args.attribution?.speaker ?? UNASSIGNED;
+    const verdict = args.attribution?.verdict ?? "unverified";
+    // Only a positive identification of another voice holds an item back.
+    const sideVoice = this.speakerAware && verdict === "other_voice";
+
     // Repeat-loop guard: the failure mode behind "260 nuggets".
     //
     // What makes a repeat is conversational, not temporal: the same item asked for
     // again with nothing ordered in between, and no number attached. A drive-thru
     // speaker is bad enough that people say things twice, and the gap between the
-    // two tries is however long the agent took to answer.
+    // two tries is however long the agent took to answer. It is one person saying it
+    // twice: the same item from another voice is that person's request.
     const last = this.lines[this.lines.length - 1];
     const backToBack =
       this.guards &&
+      !sideVoice &&
       last?.itemId === item.id &&
       last.status === "confirmed" &&
       quantity === 1 &&
       Date.now() - last.addedAt < GUARDS.repeatWindowMs;
     if (backToBack) {
+      this.repeatQuestion = { itemId: item.id, name: item.name, at: Date.now() };
       this.flag("repeat", `"${item.name}" asked for twice in a row — asked instead of stacking`);
       return {
         status: "needs_confirmation",
-        message: `${item.name} is already on the ticket. Ask whether they want a second one or were repeating themselves. If they say one is enough — "just the one" — call confirm_held_item with discard. If they do want another, call confirm_held_item with add. Never call remove_item here: the first one stays.`,
+        message: `${item.name} is already on the ticket. Ask whether they want a second one or were repeating themselves. If they say one is enough — "just the one" — call confirm_held_item with discard. If they do want another, call confirm_held_item with add, not add_item. Never call remove_item here: the first one stays.`,
       };
     }
 
-    const speaker = args.attribution?.speaker ?? UNASSIGNED;
-    const verdict = args.attribution?.verdict ?? "unverified";
     const requestedBy = unplaced(speaker) ? (this.driver ?? DRIVER) : speaker;
     const needsQuantityCheck = this.guards && quantity > GUARDS.confirmQuantity;
-    // Only a positive identification of another voice holds an item back.
-    const sideVoice = this.speakerAware && verdict === "other_voice";
 
     const line: OrderLine = {
       lineId: newLineId(),
@@ -368,6 +375,9 @@ export class OrderEngine {
       evidence: args.attribution?.evidence ?? args.spoken,
     };
     this.lines.push(line);
+    // The driver has moved on, so "a second one?" is no longer the open question. A
+    // shout from the back seat is not an answer to it.
+    if (!sideVoice) this.repeatQuestion = null;
 
     if (needsQuantityCheck) {
       this.flag("quantity", `${quantity} × ${item.name} held for confirmation`);
@@ -415,6 +425,19 @@ export class OrderEngine {
    */
   resolvePending(spoken: string | undefined, decision: "add" | "discard", evidence?: string): Outcome {
     const pending = this.lines.filter((l) => l.status === "pending");
+    const named = spoken ? this.find(spoken).item : undefined;
+
+    // "Did you want a second one?" is a question about a line already on the ticket,
+    // not about a held one. It is answered here — otherwise a customer who does want
+    // two is told to add it, and the add is asked about all over again.
+    const question = this.openRepeatQuestion();
+    const aboutRepeat =
+      question &&
+      (named
+        ? named.id === question.itemId && !pending.some((l) => l.itemId === named.id)
+        : !pending.some((l) => l.addedAt > question.at));
+    if (question && aboutRepeat) return this.answerRepeat(question, decision, evidence);
+
     if (!pending.length) {
       return {
         status: "not_found",
@@ -424,9 +447,8 @@ export class OrderEngine {
     }
 
     let target = pending[pending.length - 1];
-    if (spoken) {
-      const { item } = this.find(spoken);
-      const match = item ? [...pending].reverse().find((l) => l.itemId === item.id) : undefined;
+    if (named) {
+      const match = [...pending].reverse().find((l) => l.itemId === named.id);
       if (match) target = match;
     }
 
@@ -448,6 +470,45 @@ export class OrderEngine {
     return {
       status: "ok",
       message: `Confirmed ${target.quantity} × ${target.name}. Order total $${total.toFixed(2)}.`,
+      order_total: total,
+    };
+  }
+
+  private openRepeatQuestion() {
+    const question = this.repeatQuestion;
+    if (question && Date.now() - question.at < GUARDS.repeatWindowMs) return question;
+    this.repeatQuestion = null;
+    return null;
+  }
+
+  /** "Just the one" keeps the line as it is; "yes, two" makes it two — on a spoken yes. */
+  private answerRepeat(
+    question: { itemId: string; name: string },
+    decision: "add" | "discard",
+    evidence?: string,
+  ): Outcome {
+    if (decision === "discard") {
+      this.repeatQuestion = null;
+      return { status: "ok", message: `Kept one ${question.name}; nothing was added.` };
+    }
+
+    if (this.speakerAware && evidence && !saysYes(evidence)) {
+      return {
+        status: "needs_confirmation",
+        message: `Nothing in "${evidence.trim()}" was a yes, so there is still one ${question.name}. Ask once — "a second ${question.name}?" — and only call this again when they answer.`,
+      };
+    }
+
+    this.repeatQuestion = null;
+    const line = [...this.lines].reverse().find((l) => l.itemId === question.itemId && l.status === "confirmed");
+    if (!line) {
+      return { status: "not_found", message: `${question.name} is no longer on the ticket. Ask whether they want one.` };
+    }
+    line.quantity += 1;
+    const total = this.snapshot().total;
+    return {
+      status: "ok",
+      message: `Now ${line.quantity} × ${line.name}. Order total $${total.toFixed(2)}.`,
       order_total: total,
     };
   }
@@ -510,6 +571,8 @@ export class OrderEngine {
 
     const { item } = this.find(args.spoken);
     if (!item) return { status: "not_found", message: `No "${args.spoken}" on this order to change.` };
+    // "Just the one" said as a correction answers "a second one?" just the same.
+    if (this.repeatQuestion?.itemId === item.id) this.repeatQuestion = null;
 
     // A correction too short to place is the person the agent is talking to, exactly as
     // it is when an item is added: only a positively identified other voice is a passenger.
@@ -643,6 +706,7 @@ export class OrderEngine {
   removeItem(spoken: string): Outcome {
     const { item } = this.find(spoken);
     if (!item) return { status: "not_found", message: `No "${spoken}" on this order.` };
+    if (this.repeatQuestion?.itemId === item.id) this.repeatQuestion = null;
 
     // When a copy of the same item is waiting on the driver, that is the one they mean
     // to drop — taking the confirmed one away instead empties a ticket they wanted.

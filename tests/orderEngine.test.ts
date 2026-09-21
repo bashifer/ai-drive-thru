@@ -321,6 +321,69 @@ describe("guards against the failures that made the news", () => {
     assert.equal(confirmed(e).length, 1);
   });
 
+  test("a customer who does want a second one gets it", () => {
+    // The repeat question used to be a dead end: nothing was held, so a yes found
+    // nothing to confirm, and the add_item it was told to make hit the guard again.
+    const e = new OrderEngine();
+    e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
+    const out = e.resolvePending("bacon stack", "add", "Yes, two please.");
+    assert.equal(out.status, "ok");
+    assert.deepEqual(names(e), ["2×Bacon Stack"]);
+  });
+
+  test("'just the one' keeps the first and says so", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
+    const out = e.resolvePending("bacon stack", "discard");
+    assert.equal(out.status, "ok");
+    assert.match(out.message, /one Bacon Stack/);
+    assert.deepEqual(names(e), ["1×Bacon Stack"]);
+  });
+
+  test("moving on is not a yes to a second one either", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
+    const out = e.resolvePending("bacon stack", "add", "That's everything.");
+    assert.equal(out.status, "needs_confirmation");
+    assert.deepEqual(names(e), ["1×Bacon Stack"]);
+  });
+
+  test("the repeat question closes once the order moves on", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "large fries", quantity: 1, size: "large", attribution: driver() });
+    assert.equal(e.resolvePending(undefined, "add", "Yes").status, "not_found");
+    assert.deepEqual(names(e), ["1×Bacon Stack", "1×Fries"]);
+  });
+
+  test("another voice asking for the same thing is a request, not a repeat", () => {
+    // "And a burger for me!" from the back seat right after the driver's burger is not
+    // the driver saying it twice. Asking "a second one?" would put the kid's burger on
+    // the driver's line.
+    const e = new OrderEngine();
+    e.addItem({ spoken: "lab burger", quantity: 1, attribution: driver() });
+    const out = e.addItem({ spoken: "lab burger", quantity: 1, attribution: backSeat("a burger for me") });
+    assert.equal(out.status, "needs_confirmation");
+    assert.match(out.message, /another voice/);
+    assert.equal(held(e)[0]?.owner, "B");
+  });
+
+  test("a held back-seat request and a repeat question are settled by name", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "lab burger", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "lab burger", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "chocolate shake", quantity: 1, attribution: backSeat() });
+
+    e.resolvePending("shake", "add", "Yes, the shake too.");
+    assert.deepEqual(names(e).sort(), ["1×Lab Burger", "1×Milkshake"]);
+    e.resolvePending("lab burger", "add", "And yes, two burgers.");
+    assert.deepEqual(names(e).sort(), ["1×Milkshake", "2×Lab Burger"]);
+  });
+
   test("a modification into an absurd quantity is caught too", () => {
     const e = new OrderEngine();
     e.addItem({ spoken: "nuggets", quantity: 1, attribution: driver() });
