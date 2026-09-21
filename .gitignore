@@ -48,3 +48,7 @@ bench/cache/
 
 # downloaded corpora (CC BY / CC BY-NC) — fetched by scripts, never committed
 bench/data/
+
+# working notes for the handoff between sessions, not part of the submission
+HANDOFF.md
+NEW-CHAT-PROMPT.md
