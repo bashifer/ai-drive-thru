@@ -186,7 +186,9 @@ export const SCENARIOS: Scenario[] = [
     expect: {
       ticket: [
         { item: "Lab Burger", qty: 1, owner: "driver" },
-        { item: "Crispy Chicken Sandwich", qty: 1 },
+        // The claim is that the sandwich is hers. Booked to the driver, the kitchen
+        // would make the same food and the ticket would still be wrong about whose it is.
+        { item: "Crispy Chicken Sandwich", qty: 1, owner: "passenger" },
       ],
     },
   },
