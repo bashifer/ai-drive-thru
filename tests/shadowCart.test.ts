@@ -3,7 +3,7 @@ import { describe, test } from "node:test";
 import type { Attribution, RoomEar } from "../src/lib/attribution";
 import { OrderEngine, type OrderSnapshot } from "../src/lib/orderEngine";
 import { describeActual } from "../src/lib/scoring";
-import { ShadowCart } from "../src/lib/shadowCart";
+import { ShadowCart, compareCarts } from "../src/lib/shadowCart";
 import { ToolRunner } from "../src/lib/toolDispatch";
 
 /**
@@ -142,5 +142,60 @@ describe("the same calls, two carts", () => {
     const expected = ["1×Fries/large", "1×Lab Burger", "1×Lab Burger+no pickles"];
     assert.deepEqual(ticket(real.snapshot()), expected);
     assert.deepEqual(ticket(shadow.snapshot()), expected);
+  });
+});
+
+describe("what the board marks as the difference", () => {
+  test("the same food on both carts is no difference, however the lines are split", () => {
+    // Backseat asked "a second one?" and made its line two on a yes; the trusting cart
+    // booked the repeat as a second line of one. Same food, same bill.
+    const { real, shadow, say, call } = lane();
+    say(DRIVER_VOICE, "One bacon stack.");
+    call("add_item", { item: "Bacon Stack", quantity: 1 });
+    call("add_item", { item: "Bacon Stack", quantity: 1 });
+    say(DRIVER_VOICE, "Yes, two please.");
+    call("confirm_held_item", { decision: "add", item: "Bacon Stack" });
+
+    assert.deepEqual(ticket(real.snapshot()), ["2×Bacon Stack"]);
+    assert.deepEqual(ticket(shadow.snapshot()), ["1×Bacon Stack", "1×Bacon Stack"]);
+    const gap = compareCarts(shadow.snapshot(), real.snapshot());
+    assert.equal(gap.gaps.size, 0);
+    assert.equal(gap.money, 0);
+  });
+
+  test("260 nuggets is the whole difference, and the whole bill", () => {
+    const { real, shadow, say, call } = lane();
+    say(DRIVER_VOICE, "I want two hundred and sixty chicken nuggets.");
+    call("add_item", { item: "chicken nuggets", quantity: 260 });
+
+    const gap = compareCarts(shadow.snapshot(), real.snapshot());
+    assert.deepEqual(gap.extra, ["260 × Chicken Nuggets"]);
+    assert.equal([...gap.gaps.values()][0].tag, "absent");
+    assert.equal(gap.money, shadow.snapshot().total);
+  });
+
+  test("a request Backseat is still holding is marked as held, not as missing", () => {
+    const { real, shadow, say, call } = lane();
+    say(DRIVER_VOICE, "One veggie lab, please.");
+    call("add_item", { item: "Veggie Lab" });
+    say(KID_VOICE, "And onion rings! Onion rings too!");
+    call("add_item", { item: "onion rings" });
+
+    const gap = compareCarts(shadow.snapshot(), real.snapshot());
+    assert.deepEqual(gap.extra, ["1 × Onion Rings"]);
+    assert.equal([...gap.gaps.values()][0].tag, "held");
+  });
+
+  test("only the part of a line Backseat did not book is counted", () => {
+    const { real, shadow, say, call } = lane();
+    say(DRIVER_VOICE, "Two lab burgers.");
+    call("add_item", { item: "lab burgers", quantity: 2 });
+    // The driver's burgers go on both carts; the kid's third one only on the left.
+    say(KID_VOICE, "And a burger for me!");
+    call("add_item", { item: "lab burger", quantity: 1 });
+    call("finalize_order");
+
+    const gap = compareCarts(shadow.snapshot(), real.snapshot());
+    assert.deepEqual(gap.extra, ["1 × Lab Burger"]);
   });
 });

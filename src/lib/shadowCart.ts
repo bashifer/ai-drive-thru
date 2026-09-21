@@ -1,4 +1,5 @@
 import { OrderEngine, type OrderLine, type OrderSnapshot } from "./orderEngine";
+import { describeLine } from "./scoring";
 import { dispatchTool, type QueuedToolCall } from "./toolDispatch";
 
 /**
@@ -48,4 +49,46 @@ export class ShadowCart {
   reset() {
     this.engine.reset();
   }
+}
+
+/** Food on the trusting cart that Backseat did not book, and whether it is waiting on the driver. */
+export type Gap = { tag: "held" | "absent"; units: number };
+
+/**
+ * What the trusting cart booked that Backseat did not: held for the driver, or never on
+ * its ticket at all. Counted in units of what the kitchen reads — item, size, modifiers —
+ * so "2 × Bacon Stack" and two lines of one are the same food, and the trusting cart's
+ * blindness to whose food it is does not count against it.
+ */
+export function compareCarts(trusting: OrderSnapshot, real: OrderSnapshot) {
+  const kind = (l: OrderLine) => describeLine({ item: l.name, qty: 1, size: l.size, modifiers: l.modifiers });
+  const units = (lines: OrderLine[]) => {
+    const counts = new Map<string, number>();
+    for (const line of lines) counts.set(kind(line), (counts.get(kind(line)) ?? 0) + line.quantity);
+    return counts;
+  };
+  const take = (counts: Map<string, number>, key: string, wanted: number) => {
+    const got = Math.min(counts.get(key) ?? 0, wanted);
+    counts.set(key, (counts.get(key) ?? 0) - got);
+    return got;
+  };
+
+  const booked = units(real.lines.filter((l) => l.status === "confirmed"));
+  const held = units(real.lines.filter((l) => l.status === "pending"));
+  const gaps = new Map<string, Gap>();
+  for (const line of trusting.lines) {
+    const key = kind(line);
+    const extra = line.quantity - take(booked, key, line.quantity);
+    if (!extra) continue;
+    gaps.set(line.lineId, { tag: take(held, key, extra) === extra ? "held" : "absent", units: extra });
+  }
+
+  return {
+    gaps,
+    extra: trusting.lines.flatMap((l) => {
+      const gap = gaps.get(l.lineId);
+      return gap ? [`${gap.units} × ${l.name}`] : [];
+    }),
+    money: +(trusting.total - real.total).toFixed(2),
+  };
 }

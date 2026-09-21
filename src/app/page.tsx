@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { guestName } from "@/lib/attribution";
 import { DRIVER, UNASSIGNED, ownerLabel, type OrderLine, type OrderSnapshot } from "@/lib/orderEngine";
-import { describeActual } from "@/lib/scoring";
+import { compareCarts, type Gap } from "@/lib/shadowCart";
 import { useBackseat, type ScenarioRun, type XRayEvent } from "@/lib/useBackseat";
 
 import { SCENARIOS } from "@/lib/scenarios";
@@ -193,9 +193,9 @@ function OrderBoard({
             Same tool calls, two carts. Only Backseat answers the agent; the cart on the left books every call it is
             given.
           </p>
-          {gap.lines.length > 0 && (
+          {gap.extra.length > 0 && (
             <p className="mt-1 font-medium text-rose-300">
-              Difference: {gap.lines.map((l) => `${l.quantity} × ${l.name}`).join(", ")}
+              Difference: {gap.extra.join(", ")}
               {gap.money > 0 && ` · $${money(gap.money)}`}
             </p>
           )}
@@ -216,7 +216,7 @@ function OrderBoard({
             snapshot={shadow}
             totalClass={gap.money > 0 ? "text-rose-300" : "text-slate-200"}
           >
-            <TrustingLines lines={shadow.lines} tags={gap.tags} />
+            <TrustingLines lines={shadow.lines} gaps={gap.gaps} />
           </Receipt>
         )}
         <Receipt
@@ -286,39 +286,6 @@ function OrderBoard({
 }
 
 const money = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-/**
- * Which lines of the trusting cart Backseat did not book: held for the driver, or never
- * on its ticket at all. Lines are matched on what the kitchen reads — item, quantity,
- * size, modifiers — because the trusting cart has no idea whose food anything is.
- */
-function compareCarts(trusting: OrderSnapshot, real: OrderSnapshot) {
-  const tally = (lines: OrderLine[]) => {
-    const counts = new Map<string, number>();
-    for (const line of lines) counts.set(describeActual(line), (counts.get(describeActual(line)) ?? 0) + 1);
-    return counts;
-  };
-  const take = (counts: Map<string, number>, key: string) => {
-    const n = counts.get(key) ?? 0;
-    if (n > 0) counts.set(key, n - 1);
-    return n > 0;
-  };
-
-  const booked = tally(real.lines.filter((l) => l.status === "confirmed"));
-  const held = tally(real.lines.filter((l) => l.status === "pending"));
-  const tags = new Map<string, "held" | "absent">();
-  for (const line of trusting.lines) {
-    const key = describeActual(line);
-    if (take(booked, key)) continue;
-    tags.set(line.lineId, take(held, key) ? "held" : "absent");
-  }
-
-  return {
-    tags,
-    lines: trusting.lines.filter((l) => tags.has(l.lineId)),
-    money: +(trusting.total - real.total).toFixed(2),
-  };
-}
 
 function Receipt({
   heading,
@@ -453,29 +420,37 @@ function BackseatLines({ order }: { order: OrderSnapshot }) {
 }
 
 /** The trusting cart: one customer, every call booked, nothing held. */
-function TrustingLines({ lines, tags }: { lines: OrderLine[]; tags: Map<string, "held" | "absent"> }) {
+function TrustingLines({ lines, gaps }: { lines: OrderLine[]; gaps: Map<string, Gap> }) {
   if (lines.length === 0) return <p className="text-sm text-slate-500">Nothing booked.</p>;
 
   return (
     <ul className="space-y-1.5">
       {lines.map((line) => {
-        const tag = tags.get(line.lineId);
+        const gap = gaps.get(line.lineId);
+        const partial = gap !== undefined && gap.units < line.quantity;
         return (
           <li
             key={line.lineId}
             className={`flex items-baseline justify-between gap-3 rounded-lg px-3 py-2 ${
-              tag === "absent"
+              gap?.tag === "absent"
                 ? "border border-rose-400/40 bg-rose-400/10"
-                : tag === "held"
+                : gap?.tag === "held"
                   ? "border border-amber-400/30 bg-amber-400/5"
                   : "bg-white/[0.03]"
             }`}
           >
             <div>
               <LineText line={line} />
-              {tag === "absent" && <div className="mt-0.5 text-xs text-rose-300">not on Backseat&apos;s ticket</div>}
-              {tag === "held" && (
-                <div className="mt-0.5 text-xs text-amber-300">Backseat is holding this for the driver</div>
+              {gap?.tag === "absent" && (
+                <div className="mt-0.5 text-xs text-rose-300">
+                  {partial ? `${gap.units} of these ${gap.units === 1 ? "is" : "are"} not` : "not"} on Backseat&apos;s
+                  ticket
+                </div>
+              )}
+              {gap?.tag === "held" && (
+                <div className="mt-0.5 text-xs text-amber-300">
+                  Backseat is holding {partial ? `${gap.units} of these` : "this"} for the driver
+                </div>
               )}
             </div>
             <LinePrice line={line} />
