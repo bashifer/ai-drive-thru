@@ -138,6 +138,21 @@ describe("the car is not one person", () => {
     assert.deepEqual(names(e), ["1×Milkshake"]);
   });
 
+  test("a turn the room ear has not heard yet is not a yes either", () => {
+    // Bench, 21 Sep: the next lane's fries were held, the driver said "that's
+    // everything", the agent called confirm_held_item(add) — and with no words from the
+    // room ear yet, the empty turn skipped the consent check and sold them.
+    const e = new OrderEngine();
+    e.addItem({ spoken: "large fries", quantity: 2, size: "large", attribution: backSeat("two large fries") });
+    const out = e.resolvePending("fries", "add", "");
+    assert.equal(out.status, "needs_confirmation");
+    assert.equal(confirmed(e).length, 0, "still off the ticket");
+
+    e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
+    assert.equal(e.resolvePending("bacon stack", "add", "").status, "needs_confirmation", "nor a second one");
+  });
+
   test("the driver's no drops it without a trace on the ticket", () => {
     const e = new OrderEngine();
     e.addItem({ spoken: "chocolate shake", quantity: 1, attribution: backSeat() });

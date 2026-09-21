@@ -467,11 +467,12 @@ export class OrderEngine {
       return { status: "ok", message: `Dropped ${target.name}. It never reached the ticket.` };
     }
 
-    if (this.speakerAware && evidence && !saysYes(evidence)) {
+    const noYes = this.noSpokenYes(evidence);
+    if (noYes) {
       this.flag("side_voice", `No spoken yes for ${target.name} — still held`);
       return {
         status: "needs_confirmation",
-        message: `Nothing in "${evidence.trim()}" was a yes, so ${target.name} is still off the ticket. Ask the driver one plain question — "add the ${target.name}?" — and only call this again when they answer.`,
+        message: `${noYes}, so ${target.name} is still off the ticket. Ask the driver one plain question — "add the ${target.name}?" — and only call this again when they answer.`,
       };
     }
 
@@ -482,6 +483,17 @@ export class OrderEngine {
       message: `Confirmed ${target.quantity} × ${target.name}. Order total $${total.toFixed(2)}.`,
       order_total: total,
     };
+  }
+
+  /**
+   * Consent is a yes somebody said. `evidence` is the whole turn from the room ear:
+   * undefined means there is no room ear to ask (unit tests, the single-ear baseline),
+   * and an empty turn means it has not heard the driver yet — which is not a yes. Reading
+   * silence as consent is how the next lane's fries were sold in the 21 Sep bench run.
+   */
+  private noSpokenYes(evidence: string | undefined): string | null {
+    if (!this.speakerAware || evidence === undefined || saysYes(evidence)) return null;
+    return evidence.trim() ? `Nothing in "${evidence.trim()}" was a yes` : "No yes was heard from the driver";
   }
 
   private openRepeatQuestion() {
@@ -502,10 +514,11 @@ export class OrderEngine {
       return { status: "ok", message: `Kept one ${question.name}; nothing was added.` };
     }
 
-    if (this.speakerAware && evidence && !saysYes(evidence)) {
+    const noYes = this.noSpokenYes(evidence);
+    if (noYes) {
       return {
         status: "needs_confirmation",
-        message: `Nothing in "${evidence.trim()}" was a yes, so there is still one ${question.name}. Ask once — "a second ${question.name}?" — and only call this again when they answer.`,
+        message: `${noYes}, so there is still one ${question.name}. Ask once — "a second ${question.name}?" — and only call this again when they answer.`,
       };
     }
 
