@@ -10,10 +10,10 @@ pickles". Four voices, one cart, and a correction aimed at food that belongs to 
 is not speaking. A transcript cannot express that; a cart with owners can.
 
 This is where public drive-thru deployments broke. McDonald's ended its IBM pilot in 2024
-after orders picked up voices from the next lane and famously ran to 260 McNuggets; Taco Bell
-slowed its 500-store rollout in 2025 after a prank order for 18,000 cups of water. The 2025
-Intouch drive-thru study put a number on it: AI lanes are 21 seconds faster, and order
-accuracy drops to 83% against an 87% average.
+after videos of wrong orders went viral — one took an order from the next lane, another ran
+to 260 McNuggets; Taco Bell slowed its 500-store rollout in 2025 after a prank order for
+18,000 cups of water. The 2025 Intouch drive-thru study put a number on it: AI lanes are 21
+seconds faster, and order accuracy drops to 83% against an 87% average.
 
 ## The layer this project is about
 
