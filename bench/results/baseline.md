@@ -3,15 +3,15 @@
 | Metric | Value |
 | --- | --- |
 | Scenes passed | 14/21 |
-| Order Exact Match | 67% |
+| Order Exact Match | 71% |
 | Slot accuracy | 99% |
-| False adds | 8 |
+| False adds | 7 |
 | Speaker attribution | 95% |
 | Unknown speaker rate | 0% |
 | Correction success | 100% |
 | Escalation recall | 0% |
-| Reply latency | p50 190 ms · p90 478 ms (48 replies) |
-| Replies waiting on a tool round trip | 10 |
+| Reply latency, last word → first audible word | p50 3996 ms · p90 3996 ms (1 replies) |
+| The same, when the reply waited on a tool call | p50 6150 ms · p90 9616 ms (46 replies) |
 
 | Scene | Conditions | Result | Cart | Notes |
 | --- | --- | --- | --- | --- |
@@ -31,7 +31,7 @@
 | Talking over the read-back | interruption, correction (recorded) | pass | 1×Lab Burger+no pickles, 1×Onion Rings | semantic barge-in lands the correction the customer actually made |
 | Uh-huh is not an interruption | interruption (recorded) | pass | 1×Cola/medium, 1×Double Lab Burger | back-channels do not cut the agent off |
 | Two hundred and sixty nuggets | absurd_quantity (recorded) | **fail** | 260×Chicken Nuggets | false add 260×Chicken Nuggets; must not contain Chicken Nuggets; escalated: got false want true |
-| Eighteen thousand cups of water | absurd_quantity (recorded) | **fail** | 18000×Bottled Water | false add 18000×Bottled Water; must not contain Bottled Water; escalated: got false want true |
+| Eighteen thousand cups of water | absurd_quantity (recorded) | **fail** | — | escalated: got false want true |
 | Saying it twice because the speaker is bad | car_5db (recorded) | **fail** | 1×Bacon Stack, 1×Bacon Stack | false add 1×Bacon Stack |
 | Spanish and English in one sentence | code_switch (recorded) | pass | 1×Cola/large, 2×Lab Burger | code-switching is understood without switching modes |
 | Something we do not sell | clean | pass | 1×Lab Burger | the agent does not invent a product |

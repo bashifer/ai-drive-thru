@@ -223,18 +223,22 @@ order guards are switched on.
 | | Backseat | Single ear, no guards |
 | --- | --- | --- |
 | Scenes passed | **19/21** | 14/21 |
-| Order Exact Match | **91%** | 67% |
-| Slot accuracy | 96% | 99% |
-| False adds | **0** | 8 |
+| Order Exact Match | **91%** | 71% |
+| Slot accuracy | 98% | 99% |
+| False adds | **0** | 7 |
 | Escalation recall | **100%** | 0% |
-| Speaker attribution | 95% | 95% |
-| Reply latency | p50 188 ms · p90 506 ms | p50 190 ms · p90 478 ms |
+| Speaker attribution | 92% | 95% |
+| Reply after a tool call, last word → first audible word | p50 6.3 s · p90 10.7 s (48 replies) | p50 6.2 s · p90 9.6 s (46 replies) |
 
-Slot accuracy is the one row the baseline wins, and it is worth saying why: it counts how
-much of each *expected* line arrived, and a system that adds everything it hears scores well
-on it. The false-add row is the other half of that sentence — the baseline books the next
-lane's fries, 260 nuggets and 18,000 cups of water. Order Exact Match is the metric a
-restaurant actually feels, because a cart is either right or it is not.
+Two rows go the baseline's way, and both are worth explaining. Slot accuracy counts how much
+of each *expected* line arrived, and a cart that adds everything it hears scores well on it.
+The false-add row is the other half of that sentence: the baseline books the next lane's
+fries and apple pie, the kid's onion rings, a second Bacon Stack for a sentence said twice,
+and 260 nuggets. Speaker attribution only scores expected lines too, so none of those count
+against it. Its gap is one scene, `passenger-owns-their-fix`: Backseat's diarization swapped
+the two voices and got both owners wrong, while a cart that puts every line in the driver's
+bag gets the driver's half right by default. Order Exact Match is the metric a restaurant
+actually feels, because a cart is either right or it is not.
 
 On the 156 real orders, one speaker:
 
@@ -247,24 +251,42 @@ Two points of exact-match for a real car recording at +5 dB signal-to-noise is t
 argument in the project for far-field Voice Focus: the noise is audible on the recording and
 the cart barely notices.
 
-Reply latency counts first audio out after the customer stopped speaking, over 47 replies.
-Thirteen more replies took longer than five seconds because they were waiting on a tool round
-trip; those are reported separately rather than folded into the percentile, since they measure
-the kitchen, not the turn-taking.
+Reply latency runs from the customer's last word to the first frame of the agent's reply
+that has any sound in it. At a drive-thru nearly every turn changes the cart, so 48 of
+Backseat's 49 timed replies waited on a tool call, and most of that wait is fixed. The traces
+show where it goes: the model calls a tool about 0.9 s after the turn ends; the reply then
+stays open another 2.3 s for a transition phrase this agent does not say; the answer starts
+about 60 ms after the result goes back, and on the recorded lane its first word is heard
+about 1.4 s later; the rest is end-of-turn detection. Closing an order makes two calls and
+pays the transition twice. The baseline waits just as long, so this is the agent's tool
+rhythm, not the order engine. It is the next thing to fix, and the row above is the before.
 
 These are single-run figures on a stochastic pipeline, and the committed reports in
-`bench/results/` are that same run. Across eight runs the scene suite has landed between 15
-and 19 of 21 and the order set between 65% and 74% exact — the gap to the baseline is stable,
-the third digit is not.
+`bench/results/` are that same run. Across ten full runs the scene suite has landed between
+15 and 19 of 21, and the order set between 65% and 74% exact across its runs — the gap to the
+baseline is stable, the third digit is not. The 156-order reports are from 20 and 21 Sep, on
+earlier builds; that bench runs one ear with no attribution, which the evening's consent fix
+does not touch.
 
 ### What still fails, and why it stays in the report
 
 - **Two similar voices get swapped.** In `passenger-owns-their-fix` the diarization stream
   labels the driver and the passenger the wrong way round, and ownership follows it. Turning
-  `max_speakers` down from 4 to 3 reduced over-splitting but did not fix it. This is the one
-  scene that fails on the thing the project is named after, and it stays in the report.
+  `max_speakers` down from 4 to 3 reduced over-splitting but did not fix it. It fails on the
+  thing the project is named after, and it stays in the report.
+- **A voice placed too late counts as the driver.** In `backseat-approved` the kid's two short
+  lines ("Can I have chicken nuggets?" "Nuggets, please.") had not been placed with a voice
+  when the agent acted, so the rule that an unplaced voice is the driver's put the nuggets in
+  the driver's bag without asking. The driver's "add the nuggets for him" then read as a second
+  order rather than a change of owner. Nothing unwanted was sold, but the bag is wrong. The
+  scene passed in the two runs before this one; the fail-safe is deliberate, the missing
+  change of owner is not.
+- **The model sometimes adds a correction instead of applying it.** In the run before this
+  one, "two lab burgers — actually, make that three" came back as `add_item(2)` twice while the
+  agent said "three". It passed here.
 - **A size can attach to the wrong item in a code-switched sentence.** "Quiero dos
-  hamburguesas, and a large coke" sometimes books two large burgers and loses the drink.
+  hamburguesas, and a large coke" passed in this run and has failed in others by booking two
+  large burgers and losing the drink.
 - **"Mhm" comes back as "milk".** Reliably enough that the back-channel scene now says
   "Uh-huh. Right." instead — the scene is about turn-taking, not about that homophone.
 - These are arguments for the tiers below, not scenes to be tuned until they are green.
@@ -295,6 +317,19 @@ second after the agent's own end-of-turn, so deciding who spoke at `tool.call` t
 every item; the model reaches for `modifiers` where the schema says `add_modifiers`, so
 corrections were acknowledged out loud but never applied; `chocolate` matched the alias
 `cola` by substring; and an interrupted reply dropped the tool calls it had already made.
+
+It caught a hole in consent, too. A held item needs the driver's yes, and the words of the
+driver's turn come from the room ear. In one run the agent confirmed the next lane's fries
+straight after the driver's "that's everything", before the room ear had delivered that
+turn: the check found no words, and no words passed as consent. An empty turn is now "no yes
+heard" — the item stays held and the agent asks again.
+
+And it caught one of our own numbers. This README used to report reply latency as p50 188 ms.
+That was the time to the first `reply.audio` frame, and the Voice Agent API streams frames
+from the moment it decides to reply: until the words are ready they are silence, through the
+whole of a tool call. The clock also started at the end of each scene's audio file, about
+0.6 s after the last word. Both ends now come from the audio itself, which is why the
+latency row above is slower than it used to be, and true.
 
 The A/B view caught one the bench could not. With the microphone declined, the browser sent
 no audio at all between injected clips. The room ear times words in audio, not in seconds,
