@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { test, describe } from "node:test";
 import { RoomEar } from "../src/lib/attribution";
 import type { SttTurn } from "../src/lib/sttStream";
-import { ToolGate, type QueuedToolCall } from "../src/lib/toolDispatch";
+import { OrderEngine } from "../src/lib/orderEngine";
+import { ToolGate, dispatchTool, type QueuedToolCall } from "../src/lib/toolDispatch";
 
 /**
  * When a tool call runs.
@@ -160,6 +161,23 @@ describe("when a tool call runs", () => {
       gate.drain().map((c) => c.name),
       ["add_item", "finalize_order"],
     );
+  });
+
+  test("the close looks again at a line booked before the room ear had its turn", () => {
+    // Bench, 22 Sep (mid-sentence-correction): add_item ran before the room ear's turn
+    // arrived, so the burgers went on unplaced and the close asked "are those yours?".
+    // Dispatch times windows with performance.now(), so the room ear's clock starts 20 s ago.
+    const t0 = performance.now() - 20_000;
+    const r = new RoomEar();
+    r.start(t0);
+    const engine = new OrderEngine();
+    dispatchTool(engine, "add_item", { item: "lab burger", quantity: 2 }, { room: r, turnStartedAt: t0 + 6_000 });
+    assert.equal(engine.snapshot().lines[0].unverified, true);
+
+    r.ingest(turn("2 lab burgers please", 7_400, 9_000), performance.now());
+    const out = dispatchTool(engine, "finalize_order", {}, { room: r, turnStartedAt: t0 + 19_000 });
+    assert.equal(out.status, "ok");
+    assert.equal(engine.snapshot().lines[0].unverified, false);
   });
 
   test("everything still queued can be taken at once", () => {

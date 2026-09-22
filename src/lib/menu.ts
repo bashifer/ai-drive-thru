@@ -532,6 +532,27 @@ export function saysYes(text: string): boolean {
   return AFFIRMATIVE.some((a) => (a.includes(" ") ? t.includes(a) : words.has(a)));
 }
 
+/** How customers say the order is finished. */
+const DONE = [
+  "that's everything",
+  "thats everything",
+  "that's all",
+  "thats all",
+  "that's it",
+  "thats it",
+  "nothing else",
+  "that'll be all",
+  "that will be all",
+  "that's the order",
+  "eso es todo",
+];
+
+/** True when these words close the order: "that's everything", "nothing else". */
+export function saysDone(text: string): boolean {
+  const t = text.toLowerCase().replace(/[’`]/g, "'");
+  return DONE.some((d) => t.includes(d));
+}
+
 /** True when the words an item was booked from are just the customer agreeing. */
 export function isBackChannel(text: string): boolean {
   const parts = normalize(text).split(" ").filter(Boolean);

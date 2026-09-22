@@ -129,13 +129,27 @@ describe("the car is not one person", () => {
   test("consent has to be spoken — moving on is not a yes", () => {
     const e = new OrderEngine();
     e.addItem({ spoken: "chocolate shake", quantity: 1, attribution: backSeat() });
-    const out = e.resolvePending("shake", "add", "That's everything for me, thanks.");
+    const out = e.resolvePending("shake", "add", "And a large coke, please.");
     assert.equal(out.status, "needs_confirmation");
     assert.equal(confirmed(e).length, 0, "still off the ticket");
 
     const yes = e.resolvePending("shake", "add", "Yeah, go ahead.");
     assert.equal(yes.status, "ok");
     assert.deepEqual(names(e), ["1×Milkshake"]);
+  });
+
+  test("'that's everything' to a held request ends the order: not a yes, and not a question again", () => {
+    // Bench, 22 Sep (next-lane-bleed): the driver said "and that's everything for me", the
+    // agent took it as a yes, was refused, and asked "Add the apple pie?" — the order never
+    // closed. They had answered: they are done, and finalize leaves the fries off.
+    const e = new OrderEngine();
+    e.addItem({ spoken: "veggie lab", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "large fries", quantity: 2, size: "large", attribution: backSeat("two large fries") });
+    const out = e.resolvePending("fries", "add", "And that's everything for me.");
+    assert.equal(out.status, "rejected");
+    assert.match(out.message, /finalize_order/);
+    assert.doesNotMatch(out.message, /\?/, "no question to ask");
+    assert.deepEqual(names(e), ["1×Veggie Lab"], "the fries are still off the ticket");
   });
 
   test("a turn the room ear has not heard yet is not a yes either", () => {
@@ -373,7 +387,7 @@ describe("guards against the failures that made the news", () => {
     e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
     e.addItem({ spoken: "bacon stack", quantity: 1, attribution: driver() });
     const out = e.resolvePending("bacon stack", "add", "That's everything.");
-    assert.equal(out.status, "needs_confirmation");
+    assert.notEqual(out.status, "ok", "not a yes");
     assert.deepEqual(names(e), ["1×Bacon Stack"]);
   });
 
@@ -503,30 +517,76 @@ describe("closing the order", () => {
     assert.match(out.message, /large Fries/);
   });
 
-  test("closing asks once about food nobody could place with a voice, then closes", () => {
+  test("food nobody could place is checked once as a read-back, never 'is that yours?'", () => {
+    // Bench, 22 Sep: a short "One bacon stack." comes back PENDING, and the close asked the
+    // only person in the car whether the Bacon Stack was theirs. Closing without asking
+    // anything is worse: in the same week a kid's PENDING "onion rings" were sold that way.
+    // A drive-thru's own answer is the read-back — "is that right?" — which works for both.
+    const e = new OrderEngine();
+    e.addItem({ spoken: "bacon stack", quantity: 1, attribution: unknownVoice() });
+    const check = e.finalize(() => unknownVoice());
+    assert.equal(check.status, "needs_confirmation");
+    assert.match(check.message, /is that right/i);
+    assert.match(check.message, /Bacon Stack/);
+    assert.doesNotMatch(check.message, /yours/i);
+    assert.equal(e.snapshot().finalized, false);
+    assert.equal(e.finalize(() => unknownVoice()).status, "ok", "checked once: the next call closes");
+
+    const noRoomEar = new OrderEngine();
+    noRoomEar.addItem({ spoken: "bacon stack", quantity: 1, attribution: unknownVoice() });
+    assert.equal(noRoomEar.finalize().status, "ok", "no room ear, nothing to look again with");
+  });
+
+  test("a second look at closing that finds the driver clears the mark", () => {
+    // The line was booked before the room ear's turn arrived; by the close it has.
+    const e = new OrderEngine();
+    e.addItem({ spoken: "lab burger", quantity: 2, attribution: unknownVoice() });
+    assert.equal(e.finalize(() => driver("lab burgers")).status, "ok");
+    assert.equal(confirmed(e)[0].unverified, false);
+  });
+
+  test("a second look at closing that finds another voice asks the driver before it goes", () => {
     const e = new OrderEngine();
     e.addItem({ spoken: "lab burger", quantity: 1, attribution: driver() });
     e.addItem({ spoken: "nuggets", quantity: 1, attribution: unknownVoice() });
+    const look = (l: { name: string }) => (l.name === "Chicken Nuggets" ? backSeat("nuggets") : driver());
 
-    const ask = e.finalize();
+    const ask = e.finalize(look);
     assert.equal(ask.status, "needs_confirmation");
     assert.match(ask.message, /Chicken Nuggets/);
+    assert.match(ask.message, /another voice/i);
     assert.equal(e.snapshot().finalized, false, "nothing goes to the kitchen while that question is open");
+    assert.deepEqual(held(e).map((l) => `${l.name}:${l.owner}`), ["Chicken Nuggets:B"]);
 
-    const out = e.finalize();
-    assert.equal(out.status, "ok", "asked once: the next call closes");
-    assert.equal(e.snapshot().finalized, true);
+    assert.equal(e.resolvePending("nuggets", "add", "Yeah, go ahead.").status, "ok");
+    assert.equal(e.finalize(look).status, "ok", "asked once: the next call closes");
+    assert.deepEqual(confirmed(e).map((l) => `${l.name}:${l.owner}`), ["Lab Burger:A", "Chicken Nuggets:B"]);
   });
 
-  test("a line added after that question is asked about too", () => {
+  test("closing again without an answer leaves that food off", () => {
     const e = new OrderEngine();
+    e.addItem({ spoken: "lab burger", quantity: 1, attribution: driver() });
     e.addItem({ spoken: "nuggets", quantity: 1, attribution: unknownVoice() });
-    assert.equal(e.finalize().status, "needs_confirmation");
-    e.addItem({ spoken: "small coke", quantity: 1, size: "small", attribution: unknownVoice() });
+    const look = (l: { name: string }) => (l.name === "Chicken Nuggets" ? backSeat("nuggets") : driver());
+    assert.equal(e.finalize(look).status, "needs_confirmation");
+    assert.equal(e.finalize(look).status, "ok");
+    assert.deepEqual(names(e), ["1×Lab Burger"]);
+    assert.deepEqual(e.snapshot().notSent, [{ name: "Chicken Nuggets", quantity: 1 }]);
+  });
 
-    const again = e.finalize();
-    assert.equal(again.status, "needs_confirmation");
-    assert.match(again.message, /Cola/);
-    assert.doesNotMatch(again.message, /Nuggets/, "the nuggets were already asked about");
+  test("once the order has gone, settling a held line is nothing to do, not a second read-back", () => {
+    // Bench, 22 Sep (backseat-ignored): after finalize left the onion rings off, the agent
+    // also discarded them, got "not found", and read the whole order out a second time.
+    const e = new OrderEngine();
+    e.addItem({ spoken: "veggie lab", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "onion rings", quantity: 2, attribution: backSeat() });
+    const sent = e.finalize();
+    assert.match(sent.message, /no other call/i);
+
+    const late = e.resolvePending("onion rings", "discard");
+    assert.equal(late.status, "ok");
+    assert.match(late.message, /already gone to the kitchen/);
+    assert.match(late.message, /say nothing/i);
+    assert.deepEqual(names(e), ["1×Veggie Lab"]);
   });
 });

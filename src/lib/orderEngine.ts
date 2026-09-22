@@ -6,6 +6,7 @@ import {
   TAX_RATE,
   canonicalModifier,
   isBackChannel,
+  saysDone,
   saysYes,
   modifiersInPhrase,
   priceOf,
@@ -180,7 +181,7 @@ export class OrderEngine {
   private driverConfident = false;
   /** An item said twice in a row that the agent is asking about: "did you want a second one?" */
   private repeatQuestion: { itemId: string; name: string; at: number } | null = null;
-  /** Lines nobody could place with a voice that the agent has already asked about before closing. */
+  /** Lines the close has already put to the driver once: another voice's, or nobody's. */
   private askedBeforeClosing = new Set<string>();
 
   constructor(opts: EngineOptions = {}) {
@@ -443,6 +444,15 @@ export class OrderEngine {
     const pending = this.lines.filter((l) => l.status === "pending");
     const named = spoken ? this.find(spoken).item : undefined;
 
+    // The close already settled every held line: it left them off and said so. Settling one
+    // again is nothing to do — answering "not found" made the agent read the order out twice.
+    if (this.finalized && !pending.length) {
+      return {
+        status: "ok",
+        message: `The order has already gone to the kitchen${named ? ` and ${named.name} is not on it` : ""}. Nothing else to do: say nothing — the customer has already heard the order and the total.`,
+      };
+    }
+
     // "Did you want a second one?" is a question about a line already on the ticket,
     // not about a held one. It is answered here — otherwise a customer who does want
     // two is told to add it, and the add is asked about all over again.
@@ -476,6 +486,7 @@ export class OrderEngine {
     const noYes = this.noSpokenYes(evidence);
     if (noYes) {
       this.flag("side_voice", `No spoken yes for ${target.name} — still held`);
+      if (evidence && saysDone(evidence)) return this.closedWithoutYes(target.name);
       return {
         status: "needs_confirmation",
         message: `${noYes}, so ${target.name} is still off the ticket. Ask the driver one plain question — "add the ${target.name}?" — and only call this again when they answer.`,
@@ -502,6 +513,17 @@ export class OrderEngine {
     return evidence.trim() ? `Nothing in "${evidence.trim()}" was a yes` : "No yes was heard from the driver";
   }
 
+  /**
+   * "That's everything" in answer to a held request is not a yes, and it is not a reason to
+   * ask again either: the driver has answered, they are done. The close leaves it off.
+   */
+  private closedWithoutYes(name: string): Outcome {
+    return {
+      status: "rejected",
+      message: `Nothing was added: they said they are done without agreeing to ${name}. Call finalize_order now — it leaves ${name} off the ticket. Do not ask about ${name} again.`,
+    };
+  }
+
   private openRepeatQuestion() {
     const question = this.repeatQuestion;
     if (question && Date.now() - question.at < GUARDS.repeatWindowMs) return question;
@@ -522,6 +544,7 @@ export class OrderEngine {
 
     const noYes = this.noSpokenYes(evidence);
     if (noYes) {
+      if (evidence && saysDone(evidence)) return this.closedWithoutYes(`a second ${question.name}`);
       return {
         status: "needs_confirmation",
         message: `${noYes}, so there is still one ${question.name}. Ask once — "a second ${question.name}?" — and only call this again when they answer.`,
@@ -800,28 +823,54 @@ export class OrderEngine {
    * Close the order: one call, carrying the ticket the agent reads back.
    *
    * Each tool call is a wait the car sits through in silence, so closing does not take
-   * a separate read-back first. The one thing the read-back used to catch is asked here
-   * instead: food the room ear never placed with a voice is named once before the
-   * ticket goes, and the next call closes.
+   * a separate read-back first. Before the ticket goes, `look` takes a second look at every
+   * line booked from a voice nobody could place — the room ear has often caught up since:
+   * the driver's clears the mark; another voice's turns it back into a request, which the
+   * driver is asked about once. A line still nobody's is checked once the way a drive-thru
+   * checks an order — read it back, "is that right?" — because the room ear cannot tell a
+   * lone driver's short line from a kid's: asking "is that yours?" confused the first, and
+   * saying nothing sold the second's onion rings (bench, 22 Sep).
    */
-  finalize(): Outcome {
+  finalize(look?: (line: OrderLine) => Attribution | null): Outcome {
     const snap = this.snapshot();
     if (!snap.lines.some((l) => l.status === "confirmed")) {
       return { status: "rejected", message: "There is nothing confirmed on the ticket yet." };
     }
 
-    const unplacedLines = snap.lines.filter(
-      (l) => l.status === "confirmed" && l.unverified && !this.askedBeforeClosing.has(l.lineId),
-    );
-    if (unplacedLines.length) {
-      for (const l of unplacedLines) this.askedBeforeClosing.add(l.lineId);
-      const named = unplacedLines.map((l) => `${l.quantity} × ${l.name}`).join(", ");
-      const one = unplacedLines.length === 1;
+    const reopened: OrderLine[] = [];
+    const nobodys: OrderLine[] = [];
+    for (const line of this.lines) {
+      if (line.status !== "confirmed" || !line.unverified || this.askedBeforeClosing.has(line.lineId)) continue;
+      if (!look) continue;
+      const fresh = look(line);
+      if (!fresh || fresh.verdict === "unverified") {
+        this.askedBeforeClosing.add(line.lineId);
+        nobodys.push(line);
+        continue;
+      }
+      this.noteSpeaker(fresh);
+      line.unverified = false;
+      if (fresh.verdict === "driver") continue;
+      // Another voice asked for it, and it went on before anyone could tell.
+      this.askedBeforeClosing.add(line.lineId);
+      line.status = "pending";
+      line.owner = fresh.speaker;
+      line.requestedBy = fresh.speaker;
+      reopened.push(line);
+    }
+    if (reopened.length) {
+      const named = reopened.map((l) => l.name).join(" and ");
+      this.flag("side_voice", `${named}: another voice, found at closing — asking the driver`);
       return {
         status: "needs_confirmation",
-        message: `Not sent yet: ${named} ${one ? "was" : "were"} heard but not placed with a voice. Ask once whether ${
-          one ? "it belongs" : "they belong"
-        } on the order ("and the ${unplacedLines[0].name} — is that yours?"). If they say no, call remove_item; then call finalize_order again.`,
+        message: `Not sent yet: ${named} came from another voice, not the driver. Ask the driver once — "another voice asked for the ${reopened[0].name}, add it?" — settle it with confirm_held_item, then call finalize_order again.`,
+      };
+    }
+    if (nobodys.length) {
+      const named = nobodys.map((l) => l.name).join(" and ");
+      return {
+        status: "needs_confirmation",
+        message: `Not sent yet. Check the order once, the way a drive-thru does: read it back — ${this.summary().text} — and ask "is that right?", saying the ${named} clearly. If they take something off, call remove_item; then call finalize_order again.`,
       };
     }
 
@@ -843,7 +892,9 @@ export class OrderEngine {
         status: "ok",
         message: `Order sent without ${dropped
           .map((l) => l.name)
-          .join(" or ")} — nobody confirmed ${dropped.length > 1 ? "those" : "that"}. Ticket: ${ticket}. Total $${settled.total.toFixed(
+          .join(" or ")} — nobody confirmed ${dropped.length > 1 ? "those" : "that"}, and ${
+          dropped.length > 1 ? "they are" : "it is"
+        } already off the ticket: no other call is needed. Ticket: ${ticket}. Total $${settled.total.toFixed(
           2,
         )}. Say what was left off in one short clause, give the total, and ask them to pull forward.`,
         order_total: settled.total,

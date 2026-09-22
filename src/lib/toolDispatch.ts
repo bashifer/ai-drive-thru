@@ -240,8 +240,16 @@ export function dispatchTool(
       };
     }
 
-    case "finalize_order":
-      return engine.finalize();
+    case "finalize_order": {
+      // A second look before the ticket goes: a line booked before the room ear had its
+      // turn can usually be placed with a voice by now.
+      const room = opts.room;
+      return engine.finalize(
+        room
+          ? (line) => (line.heardTo ? room.attribute(line.evidence || line.name, line.heardFrom, line.heardTo) : null)
+          : undefined,
+      );
+    }
 
     case "call_crew_member":
       return engine.escalate(typeof args.reason === "string" ? args.reason : "customer request");

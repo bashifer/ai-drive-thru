@@ -99,7 +99,7 @@ describe("the same calls, two carts", () => {
     const consent = call("confirm_held_item", { decision: "add", item: "onion rings" });
     call("finalize_order");
 
-    assert.equal(consent.status, "needs_confirmation", "moving on is not a yes");
+    assert.notEqual(consent.status, "ok", "moving on is not a yes");
     assert.deepEqual(ticket(real.snapshot()), ["1×Veggie Lab"]);
     assert.deepEqual(ticket(shadow.snapshot()), ["1×Onion Rings", "1×Veggie Lab"]);
   });
