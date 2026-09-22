@@ -92,6 +92,7 @@ and the order engine, not the model, decides what that means for the ticket.
 | `keyterms` + `transcription_prompt` | menu items, sizes, modifiers heard right the first time |
 | `session.update` mid-session | breakfast → all-day menu switch with no reconnect |
 | Client-side tools + `response_instructions` | the order engine; the model proposes, code decides |
+| Tool `execution_mode: "hold"` | closing the order and calling the crew: no transition slot, the answer starts as the result lands |
 | `reply.create` | the agent proactively asks the driver about a back-seat request |
 | Streaming diarization (`speaker_labels`, `max_speakers`) | per-voice attribution and the split ticket |
 | `agent_context` (Universal-3.5 Pro) | the room ear knows the question, so "large" and "yeah" land right |
@@ -169,11 +170,12 @@ correct ticket attached. The nearest open data is Google's
 like AISHELL-5 (Mandarin, no orders), and noise sets like MS-SNSD and DEMAND. So the bench
 builds its own scenes, with ground truth.
 
-**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 65 cases in under a
-second. Forty-four go straight at the order engine: corrections, ownership and permission,
-back-seat requests, prank quantities, repeats, items that are not on the menu, in phrasing
-that follows Taskmaster-2. Eleven replay tool calls that real sessions made through both
-carts of the A/B view, six check the replay tape, and four check how a reply is timed.
+**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 84 cases in under a
+second. Forty-seven go straight at the order engine: corrections, ownership and permission,
+back-seat requests, prank quantities, repeats, items that are not on the menu, closing, in
+phrasing that follows Taskmaster-2. Eleven replay tool calls that real sessions made through
+both carts of the A/B view, eleven check when a tool call may run, six check the replay tape,
+five check where a customer's turn begins, and four check how a reply is timed.
 
 **Layer 2 — the scene bench.** `npm run bench` plays a scripted car into the real APIs.
 Voices come from AssemblyAI's own TTS (a Voice Agent session whose `greeting` is the line),
@@ -223,22 +225,23 @@ order guards are switched on.
 | | Backseat | Single ear, no guards |
 | --- | --- | --- |
 | Scenes passed | **19/21** | 14/21 |
-| Order Exact Match | **91%** | 71% |
-| Slot accuracy | 98% | 99% |
+| Order Exact Match | **91%** | 67% |
+| Slot accuracy | 94% | 94% |
 | False adds | **0** | 7 |
 | Escalation recall | **100%** | 0% |
-| Speaker attribution | 92% | 95% |
-| Reply after a tool call, last word → first audible word | p50 6.3 s · p90 10.7 s (48 replies) | p50 6.2 s · p90 9.6 s (46 replies) |
+| Speaker attribution | 94% | 94% |
+| Reply after a tool call, last word → first audible word | p50 5.3 s · p90 7.0 s (48 replies) | p50 5.3 s · p90 7.1 s (48 replies) |
 
-Two rows go the baseline's way, and both are worth explaining. Slot accuracy counts how much
-of each *expected* line arrived, and a cart that adds everything it hears scores well on it.
+Two rows come out level, and both are worth explaining. Slot accuracy counts how much of
+each *expected* line arrived, and a cart that adds everything it hears scores well on it.
 The false-add row is the other half of that sentence: the baseline books the next lane's
-fries and apple pie, the kid's onion rings, a second Bacon Stack for a sentence said twice,
-and 260 nuggets. Speaker attribution only scores expected lines too, so none of those count
-against it. Its gap is one scene, `passenger-owns-their-fix`: Backseat's diarization swapped
-the two voices and got both owners wrong, while a cart that puts every line in the driver's
-bag gets the driver's half right by default. Order Exact Match is the metric a restaurant
-actually feels, because a cart is either right or it is not.
+fries twice and its apple pie, the kid's onion rings, a second chicken sandwich, 260 nuggets
+and 18,000 waters. Speaker attribution only scores expected lines too, so none of those count
+against it, and a cart that puts every line in the driver's bag gets the driver's half of
+every two-person scene right by default. Backseat's one miss there is
+`passenger-owns-their-fix`, where diarization swapped the two voices and both owners came
+out wrong. Order Exact Match is the metric a restaurant actually feels, because a cart is
+either right or it is not.
 
 On the 156 real orders, one speaker:
 
@@ -253,20 +256,31 @@ the cart barely notices.
 
 Reply latency runs from the customer's last word to the first frame of the agent's reply
 that has any sound in it. At a drive-thru nearly every turn changes the cart, so 48 of
-Backseat's 49 timed replies waited on a tool call, and most of that wait is fixed. The traces
-show where it goes: the model calls a tool about 0.9 s after the turn ends; the reply then
-stays open another 2.3 s for a transition phrase this agent does not say; the answer starts
-about 60 ms after the result goes back, and on the recorded lane its first word is heard
-about 1.4 s later; the rest is end-of-turn detection. Closing an order makes two calls and
-pays the transition twice. The baseline waits just as long, so this is the agent's tool
-rhythm, not the order engine. It is the next thing to fix, and the row above is the before.
+Backseat's 50 timed replies waited on a tool call. The previous run put them at p50 6.3 s and
+p90 10.7 s, and the traces showed where it went: the model calls a tool about 0.9 s after the
+turn ends; in the default interactive mode the reply then stays open another 2.3 s for a
+transition phrase this agent does not say, and the result may only go back after it; the
+answer's first word follows 1.3–2.6 s later; the rest is end-of-turn detection, which we leave
+to the API's adaptive default. Closing an order made two calls and paid the slot twice.
+
+Two changes took the longest silence out. Closing is one call now — `finalize_order` hands
+back the ticket to read — and the calls that end a conversation run with
+`execution_mode: "hold"`, which keeps the agent silent until the result lands and answers
+about 50 ms after it, with no slot. Split out of the same traces, a reply that closed the
+order went from p50 8.1 s and p90 10.9 s (16 replies) to 4.2 s and 7.9 s (18 replies);
+everything else stayed at p50 5.8 s. Mid-order tools stay interactive on purpose. Speech
+that starts while a tool is held is dropped: "…wait, no pickles on that burger", said over a
+held tool, never reached the model, on the bench and in two probes, where the interactive
+slot absorbs it and the next turn applies it. Afterthoughts are how people order. The
+baseline runs the same agent, so it got the same gain; this is the lane's rhythm, not the
+order engine.
 
 These are single-run figures on a stochastic pipeline, and the committed reports in
-`bench/results/` are that same run. Across ten full runs the scene suite has landed between
-15 and 19 of 21, and the order set between 65% and 74% exact across its runs — the gap to the
-baseline is stable, the third digit is not. The 156-order reports are from 20 and 21 Sep, on
-earlier builds; that bench runs one ear with no attribution, which the evening's consent fix
-does not touch.
+`bench/results/` are that same run. Across eleven full runs the scene suite has landed
+between 15 and 19 of 21, and the order set between 65% and 74% exact across its runs — the
+gap to the baseline is stable, the third digit is not. The 156-order reports are from 20 and
+21 Sep, on earlier builds; that bench speaks one sentence per session into one ear, so the
+room ear, the gate and the closing are not in it.
 
 ### What still fails, and why it stays in the report
 
@@ -274,19 +288,14 @@ does not touch.
   labels the driver and the passenger the wrong way round, and ownership follows it. Turning
   `max_speakers` down from 4 to 3 reduced over-splitting but did not fix it. It fails on the
   thing the project is named after, and it stays in the report.
-- **A voice placed too late counts as the driver.** In `backseat-approved` the kid's two short
-  lines ("Can I have chicken nuggets?" "Nuggets, please.") had not been placed with a voice
-  when the agent acted, so the rule that an unplaced voice is the driver's put the nuggets in
-  the driver's bag without asking. The driver's "add the nuggets for him" then read as a second
-  order rather than a change of owner. Nothing unwanted was sold, but the bag is wrong. The
-  scene passed in the two runs before this one; the fail-safe is deliberate, the missing
-  change of owner is not.
-- **The model sometimes adds a correction instead of applying it.** In the run before this
-  one, "two lab burgers — actually, make that three" came back as `add_item(2)` twice while the
-  agent said "three". It passed here.
-- **A size can attach to the wrong item in a code-switched sentence.** "Quiero dos
-  hamburguesas, and a large coke" passed in this run and has failed in others by booking two
-  large burgers and losing the drink.
+- **A code-switched sentence can lose half of itself.** "Quiero dos hamburguesas, and a large
+  coke" came back from the focused ear as "Quiero dos hamburguesas en la larga" in both modes
+  this run; the agent sensibly asked which burger, and the scripted car answered "that's
+  everything", so both carts are empty. It has passed in other runs, and failed in others by
+  booking two large burgers and losing the drink.
+- **The model sometimes adds a correction instead of applying it.** In an earlier run, "two
+  lab burgers — actually, make that three" came back as `add_item(2)` twice while the agent
+  said "three". It passed here.
 - **"Mhm" comes back as "milk".** Reliably enough that the back-channel scene now says
   "Uh-huh. Right." instead — the scene is about turn-taking, not about that homophone.
 - These are arguments for the tiers below, not scenes to be tuned until they are green.
@@ -311,6 +320,19 @@ failing scenes above live.
 
 The baseline flag is the honest comparison: identical audio and identical agent, with only
 the diarization gating and the order guards turned off. Reports land in `bench/results/`.
+
+The last run caught Backseat looking for a turn's words in the wrong place. In the published
+run before it, `backseat-approved` put the kid's nuggets in the driver's bag, and this README
+said diarization had placed the kid's voice too late. Re-running the scene with the room
+ear's turns in the trace said otherwise: it had delivered "Can I have chicken nuggets?
+Nuggets, please." as voice B about two seconds before the tool call ran. Attribution looked
+for it from the agent's `input.speech.started`, which fires 0.6–1.5 s after the first word,
+and the agent had heard the kid's line as two turns and called the tool in the second. The
+window opened after the kid had finished. A customer's turn now begins at the first speech
+the agent noticed after its last reply, reaching back two seconds and never into that reply.
+The scene passes as designed — held as another voice's, confirmed by the driver's "yeah, go
+ahead", in the kid's bag — and the share of lines Backseat could not place with any voice went
+from 12% to 0%.
 
 What the bench caught that a microphone would not have: diarization finalises a turn about a
 second after the agent's own end-of-turn, so deciding who spoke at `tool.call` time held
@@ -338,17 +360,49 @@ voice came back unplaced — a kid's milkshake was booked like the driver's burg
 streams a frame every 50 ms whatever is playing, which is why it never saw this. The page now
 sends silence as audio, the way a live microphone does.
 
+## What we learned about the Voice Agent API
+
+Written for the people who build it. Each of these cost us a bug or a wrong number, and each
+comes with what Backseat does about it.
+
+- **Time to the first frame is not time to the first word.** `reply.audio` streams digital
+  silence from the moment a reply starts, through the whole of a tool call. We published
+  p50 188 ms before we caught it; the real figure is in the table above. A marker on the
+  first voiced frame would save every builder that mistake.
+- **An instant tool costs ~2.3 s in interactive mode.** The reply stays open for a transition
+  phrase, and `tool.result` is only accepted once `reply.done` is the latest event. Prompting
+  does not fill the slot: told to say the item back while the tool runs, the model still
+  emits the calls first and puts the echo in its answer.
+- **`hold` removes the slot, and drops speech that starts during it.** A held result is
+  accepted at once and the answer starts ~50 ms later, but "…wait, no pickles on that
+  burger", said while a tool was held, never reached the model; holding the result back until
+  the customer stopped made the agent answer twice. Backseat holds only the calls after which
+  the customer is done talking. An option to let user speech end a hold, the way it ends an
+  interactive reply, would make hold safe for every instant tool.
+- **`input.speech.started` is late.** It lagged the first word by 0.6–1.5 s, and after a short
+  "that's all" it fired once the words were over. A start time on the audio clock, like the
+  streaming word timings, would let two ears line up without guessing; Backseat reaches back
+  from the agent's last reply instead.
+- **An interrupted reply still did its work.** Its tool calls happened; only the answer is
+  withheld. Backseat applies the call and treats the agent's identical re-issue as the same
+  work, not a second burger.
+- **`session.update` replaces `system_prompt`.** A mid-session menu change has to resend the
+  whole prompt; we shipped exactly that bug in the breakfast switch.
+- **A tool's `response_instructions` compete with the system prompt.** The read-back's "ask if
+  that is everything" kept orders from ever closing after the driver had said so.
+- **A session remembers the order it took.** Every car gets new sessions on both ears.
+
 ## Project layout
 
 ```
 src/lib/audio.ts        mic capture, dual-rate PCM, playback + barge-in flush, injector
 src/lib/voiceAgent.ts   Voice Agent API client (events, tools, mid-session updates)
 src/lib/sttStream.ts    diarization side-channel (binary PCM frames, agent_context)
-src/lib/attribution.ts  speaker bookkeeping: who is the driver, who asked for what
+src/lib/attribution.ts  speaker bookkeeping: who is the driver, who asked for what, where a turn began
 src/lib/orderEngine.ts  deterministic ticket: menu resolution, guards, totals
 src/lib/shadowCart.ts   the A/B cart: the same tool calls, no attribution, no guards
 src/lib/tape.ts         the replay tape: what AssemblyAI said, recorded and played back
-src/lib/toolDispatch.ts one place where a tool call becomes a change on the ticket
+src/lib/toolDispatch.ts one place where a tool call becomes a change on the ticket, and when
 src/lib/menu.ts         Burger Lab menu, aliases, keyterms
 src/lib/agentConfig.ts  system prompt, tool schemas, transcription prompt
 src/app/page.tsx        order confirmation board, lane audio, X-ray panel
