@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { AudioEngine, type InjectedClip } from "./audio";
-import { RoomEar, guestName, type SpeakerRevision } from "./attribution";
+import { RoomEar, TurnClock, guestName, type SpeakerRevision } from "./attribution";
 import { buildSessionConfig, DEFAULT_GREETING, HELD_TOOLS, systemPromptFor, type AgentOptions } from "./agentConfig";
 import { menuKeyterms, resolveMenuItem } from "./menu";
 import { OrderEngine, type OrderSnapshot, type Outcome } from "./orderEngine";
@@ -118,6 +118,8 @@ export function useBackseat() {
   const shadowRef = useRef<ShadowCart>(new ShadowCart());
 
   const turnStartedAt = useRef<number>(0);
+  /** Where the customer's turn began, reaching back past the agent's late speech.started. */
+  const turnClock = useRef<TurnClock>(new TurnClock());
   const speechStoppedAt = useRef<number | null>(null);
   const awaitingAudio = useRef(false);
   const agentSpeaking = useRef(false);
@@ -322,6 +324,7 @@ export function useBackseat() {
 
         case "input.speech.started":
           turnStartedAt.current = performance.now();
+          turnClock.current.speechStarted(turnStartedAt.current);
           awaitingAudio.current = false;
           // Snappiest barge-in: drop queued speech the moment the customer talks.
           if (agentSpeaking.current) audio?.flushPlayback();
@@ -343,8 +346,9 @@ export function useBackseat() {
           sessionUsed.current = true;
           setPartial("");
           const heardTo = performance.now();
-          const who = roomRef.current.attribute(text, turnStartedAt.current, heardTo);
-          pushLine({ role: "customer", text, speaker: who.speaker, heardFrom: turnStartedAt.current, heardTo });
+          const heardFrom = turnClock.current.turnFrom;
+          const who = roomRef.current.attribute(text, heardFrom, heardTo);
+          pushLine({ role: "customer", text, speaker: who.speaker, heardFrom, heardTo });
           if (sideTimer.current) clearTimeout(sideTimer.current);
           sideTimer.current = setTimeout(checkSideRequests, 1800);
           break;
@@ -389,6 +393,7 @@ export function useBackseat() {
 
         case "reply.done": {
           agentSpeaking.current = false;
+          turnClock.current.replyDone(performance.now());
           const interrupted = (e as { status: string }).status === "interrupted";
           if (interrupted) {
             audio?.flushPlayback();
@@ -410,7 +415,7 @@ export function useBackseat() {
           };
           sessionUsed.current = true;
           gate().add(
-            { callId: call_id, name, args: args ?? {}, turnStartedAt: turnStartedAt.current },
+            { callId: call_id, name, args: args ?? {}, turnStartedAt: turnClock.current.turnFrom },
             performance.now(),
           );
           gateTimer.current ??= setInterval(pumpGate, 40);
@@ -471,6 +476,7 @@ export function useBackseat() {
     resetTicket();
     if (sideTimer.current) clearTimeout(sideTimer.current);
     turnStartedAt.current = performance.now();
+    turnClock.current.reset(turnStartedAt.current);
     speechStoppedAt.current = null;
     awaitingAudio.current = false;
     agentSpeaking.current = false;

@@ -234,6 +234,48 @@ export class RoomEar {
   }
 }
 
+/**
+ * Where the customer's current turn began, which is where its words are looked for.
+ *
+ * The agent's `input.speech.started` is late: 0.6–1.5 s after the first word on the
+ * bench and the recorded lane, and a short "that's all" can be over before it fires.
+ * The agent can also hear one line as two turns ("Chicken nuggets?" … "Nuggets,
+ * please."), and a tool call made in the second must still find the first. Anchored on
+ * that event, attribution missed the kid's nuggets in `backseat-approved` although the
+ * room ear had delivered them two seconds earlier.
+ *
+ * So a turn begins at the first speech the agent noticed after it last finished a reply,
+ * reaching back `leadMs` for the words it noticed late — never into its own reply.
+ */
+export class TurnClock {
+  private lastReplyEnd = 0;
+  private open = false;
+  private from = 0;
+
+  constructor(private leadMs = 2000) {}
+
+  get turnFrom() {
+    return this.from;
+  }
+
+  speechStarted(at: number) {
+    if (this.open) return;
+    this.from = Math.max(this.lastReplyEnd, at - this.leadMs);
+    this.open = true;
+  }
+
+  replyDone(at: number) {
+    this.lastReplyEnd = at;
+    this.open = false;
+  }
+
+  reset(at: number) {
+    this.lastReplyEnd = at;
+    this.from = at;
+    this.open = false;
+  }
+}
+
 /** Display name for a diarization label. */
 export function guestName(speaker: string, primary: string | null) {
   if (speaker === "UNKNOWN" || speaker === "PENDING") return "Unidentified voice";

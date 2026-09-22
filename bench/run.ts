@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { buildSessionConfig, DEFAULT_GREETING, HELD_TOOLS } from "../src/lib/agentConfig";
-import { RoomEar, type SpeakerRevision } from "../src/lib/attribution";
+import { RoomEar, TurnClock, type SpeakerRevision } from "../src/lib/attribution";
 import { menuKeyterms } from "../src/lib/menu";
 import { OrderEngine } from "../src/lib/orderEngine";
 import { isAudibleReply, speechEndSample } from "../src/lib/replyTiming";
@@ -162,7 +162,8 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
   });
 
   const startedAt = performance.now();
-  room.start(startedAt);
+  /** The room ear's word timings count from the first audio it is sent, as on the page. */
+  let roomClockStarted = false;
 
   // --- agent state -------------------------------------------------------
   let ready = false;
@@ -172,7 +173,9 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
   let replyAudioMs = 0;
   let agentSpeaking = false;
   let speechEndsAt = startedAt + GREETING_ALLOWANCE_MS;
-  let turnStartedAt = startedAt;
+  /** Where the customer's turn began, as the page works it out (`TurnClock`). */
+  const turnClock = new TurnClock();
+  turnClock.reset(startedAt);
   let lastUtteranceEndedAt: number | null = null;
   let awaitingAgentTurn = false;
   let awaitingAudio = false;
@@ -194,6 +197,8 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
   let correctionsLanded = 0;
 
   const at = () => Math.round(performance.now() - startedAt);
+  let roomOriginAt = 0;
+  const roomOrigin = () => roomOriginAt - startedAt;
 
   /** Run calls in order; unless their reply was cut off, the result goes straight back. */
   const runCalls = (calls: QueuedToolCall[], resultReachesAgent: boolean) => {
@@ -207,7 +212,11 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
     for (const call of calls) {
       if (!opts.baseline && typeof call.args.item === "string") {
         const a = room.attribute(call.args.item, call.turnStartedAt);
-        trace.push(`${at()} attribute("${call.args.item}") -> ${a.speaker}/${a.verdict} evidence="${a.evidence.slice(0, 50)}"`);
+        trace.push(
+          `${at()} attribute("${call.args.item}", turn from ${Math.round(call.turnStartedAt - startedAt)}) -> ${a.speaker}/${
+            a.verdict
+          } evidence="${a.evidence.slice(0, 50)}"`,
+        );
       }
       // An interrupted reply still gets its work done, only the answer is withheld.
       const outcome = tools.run(call, resultReachesAgent);
@@ -244,7 +253,7 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
         ready = true;
         break;
       case "input.speech.started":
-        turnStartedAt = performance.now();
+        turnClock.speechStarted(performance.now());
         break;
       case "input.speech.stopped":
         awaitingAudio = true;
@@ -291,6 +300,7 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
         break;
       case "reply.done": {
         agentSpeaking = false;
+        turnClock.replyDone(performance.now());
         speechEndsAt = Math.max(performance.now(), replyStartedAt + replyAudioMs);
         const interrupted = (msg as { status?: string }).status === "interrupted";
         if (interrupted) bargeIns++;
@@ -309,7 +319,7 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
             callId: String(msg.call_id),
             name: String(msg.name),
             args: (msg.arguments ?? {}) as Record<string, unknown>,
-            turnStartedAt,
+            turnStartedAt: turnClock.turnFrom,
           },
           performance.now(),
         );
@@ -331,7 +341,12 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
       const turn = msg as unknown as SttTurn;
       room.ingest(turn);
       if (turn.end_of_turn && turn.transcript?.trim()) {
-        trace.push(`${at()} room turn ${turn.speaker_label ?? "?"}: "${turn.transcript.slice(0, 50)}"`);
+        const words = turn.words ?? [];
+        // Where the words sit on the scene clock, which is what attribution windows use.
+        const span = words.length
+          ? ` [${Math.round(words[0].start + roomOrigin())}–${Math.round(words[words.length - 1].end + roomOrigin())}]`
+          : "";
+        trace.push(`${at()} room turn ${turn.speaker_label ?? "?"}${span}: "${turn.transcript.slice(0, 50)}"`);
       }
     }
     if (msg.type === "SpeakerRevision") revisions.push(msg as unknown as SpeakerRevision);
@@ -416,6 +431,11 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
       }
 
       if (ready) {
+        if (!roomClockStarted) {
+          room.start(now);
+          roomOriginAt = now;
+          roomClockStarted = true;
+        }
         agent.send(JSON.stringify({ type: "input.audio", audio: int16ToBase64(pcm) }));
         const down = resample(pcm, AGENT_RATE, STT_RATE);
         stt.send(Buffer.from(down.buffer, down.byteOffset, down.length * 2));
