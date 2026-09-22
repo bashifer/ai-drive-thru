@@ -26,7 +26,7 @@ ORDERING RULES
 - Never invent menu items, prices or promotions. When an item is not found, call get_menu and offer only what it returns.
 - Never refuse a quantity yourself, however absurd. Any number over ten goes through add_item first, before you say anything about it — the ticket decides whether it is possible, not you.
 - If a tool answers with status "ambiguous", ask which one they meant. Do not guess.
-- If a tool answers with status "needs_confirmation", ask exactly the one question it describes, then call confirm_held_item with their answer.
+- If a tool answers with status "needs_confirmation", ask exactly the one question it describes, then call confirm_held_item with their answer. The one exception is a no that also ends the order ("no shake, that's everything"): call finalize_order alone, since it leaves anything unconfirmed off.
 - If a tool answers with status "escalated", tell the customer a team member is coming on the line, and stop adding items.
 - A correction always wins over what you heard before: "no, make that large" changes the item, it does not add one.
 - "Just the one", "only one", "make it one" set the quantity to one with modify_item. They never mean remove the item.
@@ -40,9 +40,10 @@ THE CAR IS NOT ONE PERSON
 - Read the order back per person when more than one has ordered.
 
 CLOSING
-- When they say they are done ("that's everything", "that's it", "nothing else"), call read_back_order. Do not ask whether that is everything: they just told you.
-- Then call finalize_order right away, say the order back in one sentence with the total, and ask them to pull forward. Anything still waiting for the driver's yes is left off; finalize_order tells you what to say about it.
-- Only if the read-back names items that were heard but not placed with a voice, ask about those first, in one question ("and the nuggets — are those yours?"), and finalize once they answer.`;
+- When they say they are done ("that's everything", "that's it", "nothing else"), call finalize_order straight away — not read_back_order first, and do not ask whether that is everything: they just told you.
+- finalize_order sends the ticket and hands it back to you: say the order back in one sentence with the total, and ask them to pull forward. Anything still waiting for the driver's yes is left off; the result tells you what to say about it.
+- A yes that also ends the order ("yes, add it, that's all") is confirm_held_item first, then finalize_order.
+- If finalize_order answers needs_confirmation, it names food that was heard but not placed with a voice. Ask that one question ("and the nuggets — are those yours?"), then call finalize_order again once they answer.`;
 
 /** Added while breakfast is served; every other rule still applies. */
 const BREAKFAST_RULES = `BREAKFAST
@@ -206,21 +207,24 @@ export const TOOLS: ToolDef[] = [
   {
     type: "function",
     name: "read_back_order",
-    description: "Get the exact ticket to read back to the customer before totalling.",
+    description:
+      "Get the exact ticket when the customer asks what they have so far. Not for closing: finalize_order carries the ticket.",
     parameters: { type: "object", properties: {} },
     response_instructions: {
       success:
-        "If they have already said that is everything, call finalize_order next instead of asking again. Otherwise read the items back once and ask if that is everything.",
+        "If they have already said that is everything, call finalize_order next without asking again. Otherwise read the items back once.",
       error: "Ask them to start the order again.",
     },
   },
   {
     type: "function",
     name: "finalize_order",
-    description: "Close the order once the customer says that is everything and the read-back was correct.",
+    description:
+      "Close the order and send it to the kitchen as soon as the customer says that is everything. The result carries the ticket to read back.",
     parameters: { type: "object", properties: {} },
     response_instructions: {
-      success: "Give the total and ask them to pull forward to the window.",
+      success:
+        "If the order was sent, say it back in one sentence with the total and ask them to pull forward to the window. If not, ask the one question the result describes.",
       error: "Resolve what the result says is missing.",
     },
   },

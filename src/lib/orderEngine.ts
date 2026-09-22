@@ -177,6 +177,8 @@ export class OrderEngine {
   private driverConfident = false;
   /** An item said twice in a row that the agent is asking about: "did you want a second one?" */
   private repeatQuestion: { itemId: string; name: string; at: number } | null = null;
+  /** Lines nobody could place with a voice that the agent has already asked about before closing. */
+  private askedBeforeClosing = new Set<string>();
 
   constructor(opts: EngineOptions = {}) {
     this.guards = opts.guards ?? true;
@@ -217,6 +219,7 @@ export class OrderEngine {
     this.driver = null;
     this.driverConfident = false;
     this.repeatQuestion = null;
+    this.askedBeforeClosing.clear();
   }
 
   private flag(kind: OrderFlag["kind"], message: string) {
@@ -790,10 +793,33 @@ export class OrderEngine {
     };
   }
 
+  /**
+   * Close the order: one call, carrying the ticket the agent reads back.
+   *
+   * Each tool call is a wait the car sits through in silence, so closing does not take
+   * a separate read-back first. The one thing the read-back used to catch is asked here
+   * instead: food the room ear never placed with a voice is named once before the
+   * ticket goes, and the next call closes.
+   */
   finalize(): Outcome {
     const snap = this.snapshot();
     if (!snap.lines.some((l) => l.status === "confirmed")) {
       return { status: "rejected", message: "There is nothing confirmed on the ticket yet." };
+    }
+
+    const unplacedLines = snap.lines.filter(
+      (l) => l.status === "confirmed" && l.unverified && !this.askedBeforeClosing.has(l.lineId),
+    );
+    if (unplacedLines.length) {
+      for (const l of unplacedLines) this.askedBeforeClosing.add(l.lineId);
+      const named = unplacedLines.map((l) => `${l.quantity} × ${l.name}`).join(", ");
+      const one = unplacedLines.length === 1;
+      return {
+        status: "needs_confirmation",
+        message: `Not sent yet: ${named} ${one ? "was" : "were"} heard but not placed with a voice. Ask once whether ${
+          one ? "it belongs" : "they belong"
+        } on the order ("and the ${unplacedLines[0].name} — is that yours?"). If they say no, call remove_item; then call finalize_order again.`,
+      };
     }
 
     // Anything the driver never confirmed is dropped here rather than blocking the
@@ -808,21 +834,22 @@ export class OrderEngine {
     this.finalized = true;
     this.sentAt ??= Date.now();
     const settled = this.snapshot();
+    const ticket = this.summary().text;
     if (dropped.length) {
       return {
         status: "ok",
-        message: `Order confirmed without ${dropped
+        message: `Order sent without ${dropped
           .map((l) => l.name)
-          .join(" or ")} — nobody confirmed ${dropped.length > 1 ? "those" : "that"}. Say so in one short clause, give the total $${settled.total.toFixed(
+          .join(" or ")} — nobody confirmed ${dropped.length > 1 ? "those" : "that"}. Ticket: ${ticket}. Total $${settled.total.toFixed(
           2,
-        )}, and ask them to pull forward.`,
+        )}. Say what was left off in one short clause, give the total, and ask them to pull forward.`,
         order_total: settled.total,
       };
     }
 
     return {
       status: "ok",
-      message: `Order confirmed. Total $${settled.total.toFixed(2)}. Ask them to pull forward to the window.`,
+      message: `Order sent. Ticket: ${ticket}. Total $${settled.total.toFixed(2)}. Say it back in one sentence with the total and ask them to pull forward to the window.`,
       order_total: settled.total,
     };
   }

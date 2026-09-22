@@ -480,4 +480,42 @@ describe("closing the order", () => {
     assert.equal(out.status, "ok");
     assert.equal(e.snapshot().finalized, true);
   });
+
+  test("the close carries the ticket to say back, so closing is one call", () => {
+    // Every tool call is a silent wait for the car. Closing used to be read_back_order,
+    // then finalize_order: two of them after "that's everything".
+    const e = new OrderEngine();
+    e.addItem({ spoken: "double cheeseburger", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "large fries", quantity: 1, size: "large", attribution: driver() });
+    const out = e.finalize();
+    assert.match(out.message, /Double Lab Burger/);
+    assert.match(out.message, /large Fries/);
+  });
+
+  test("closing asks once about food nobody could place with a voice, then closes", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "lab burger", quantity: 1, attribution: driver() });
+    e.addItem({ spoken: "nuggets", quantity: 1, attribution: unknownVoice() });
+
+    const ask = e.finalize();
+    assert.equal(ask.status, "needs_confirmation");
+    assert.match(ask.message, /Chicken Nuggets/);
+    assert.equal(e.snapshot().finalized, false, "nothing goes to the kitchen while that question is open");
+
+    const out = e.finalize();
+    assert.equal(out.status, "ok", "asked once: the next call closes");
+    assert.equal(e.snapshot().finalized, true);
+  });
+
+  test("a line added after that question is asked about too", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "nuggets", quantity: 1, attribution: unknownVoice() });
+    assert.equal(e.finalize().status, "needs_confirmation");
+    e.addItem({ spoken: "small coke", quantity: 1, size: "small", attribution: unknownVoice() });
+
+    const again = e.finalize();
+    assert.equal(again.status, "needs_confirmation");
+    assert.match(again.message, /Cola/);
+    assert.doesNotMatch(again.message, /Nuggets/, "the nuggets were already asked about");
+  });
 });
