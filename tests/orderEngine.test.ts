@@ -318,6 +318,17 @@ describe("guards against the failures that made the news", () => {
     assert.equal(e.snapshot().escalated, true);
   });
 
+  test("a handover does not invite the next item", () => {
+    // Bench, 22 Sep: "A team member is coming on the line. What else can I help with?"
+    for (const out of [
+      new OrderEngine().addItem({ spoken: "nuggets", quantity: 260, attribution: driver() }),
+      new OrderEngine().escalate("customer asked for a manager"),
+    ]) {
+      assert.equal(out.status, "escalated");
+      assert.match(out.message, /do not ask what else/i);
+    }
+  });
+
   test("a merely large quantity is confirmed, not refused", () => {
     const e = new OrderEngine();
     const qty = GUARDS.confirmQuantity + 1;

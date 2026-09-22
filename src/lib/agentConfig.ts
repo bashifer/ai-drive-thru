@@ -27,7 +27,7 @@ ORDERING RULES
 - Never refuse a quantity yourself, however absurd. Any number over ten goes through add_item first, before you say anything about it — the ticket decides whether it is possible, not you.
 - If a tool answers with status "ambiguous", ask which one they meant. Do not guess.
 - If a tool answers with status "needs_confirmation", ask exactly the one question it describes, then call confirm_held_item with their answer. The one exception is a no that also ends the order ("no shake, that's everything"): call finalize_order alone, since it leaves anything unconfirmed off.
-- If a tool answers with status "escalated", tell the customer a team member is coming on the line, and stop adding items.
+- If a tool answers with status "escalated", tell the customer a team member is coming on the line, and stop adding items. Do not ask what else they want.
 - A correction always wins over what you heard before: "no, make that large" changes the item, it does not add one.
 - "Just the one", "only one", "make it one" set the quantity to one with modify_item. They never mean remove the item.
 
@@ -126,7 +126,8 @@ const TOOL_DEFS: ToolDef[] = [
       required: ["item"],
     },
     response_instructions: {
-      success: "Acknowledge the item in four words or fewer and ask what else they need.",
+      success:
+        "Acknowledge the item in four words or fewer and ask what else they need. If the result hands the lane to a team member, say only that.",
       error: "Say what went wrong in one sentence and ask the question the result describes.",
     },
   },
@@ -171,7 +172,8 @@ const TOOL_DEFS: ToolDef[] = [
       required: ["item"],
     },
     response_instructions: {
-      success: "Confirm the change in one short sentence, naming the person if one was named.",
+      success:
+        "Confirm the change in one short sentence, naming the person if one was named. If the result hands the lane to a team member, say only that.",
       error: "Ask which item they mean.",
     },
   },

@@ -53,6 +53,9 @@ export const UNASSIGNED = "UNASSIGNED";
  */
 export const DRIVER = "DRIVER";
 
+/** An order handed to a person is over for the agent: it must not invite the next item. */
+const HANDED_OVER = "Do not ask what else they want: the lane is theirs now.";
+
 /** A label the room ear could not attach to anyone: too short, too noisy, or not heard yet. */
 const unplaced = (speaker: string) => speaker === UNASSIGNED || speaker === "UNKNOWN" || speaker === "PENDING";
 
@@ -328,7 +331,7 @@ export class OrderEngine {
       this.flag("escalation", `Refused ${quantity} × ${item.name} — handed to crew`);
       return {
         status: "escalated",
-        message: `${quantity} × ${item.name} is beyond what this lane takes by voice. Tell the customer a team member will handle an order that size, and stop taking new items.`,
+        message: `${quantity} × ${item.name} is beyond what this lane takes by voice. Tell the customer, in one sentence, that a team member will handle an order that size. ${HANDED_OVER}`,
       };
     }
 
@@ -416,7 +419,7 @@ export class OrderEngine {
       this.flag("total", `Order total $${total.toFixed(2)} over the voice limit`);
       return {
         status: "escalated",
-        message: `The order total passed $${GUARDS.escalateTotal}. Tell the customer a team member will take it from here.`,
+        message: `The order total passed $${GUARDS.escalateTotal}. Tell the customer a team member will take it from here. ${HANDED_OVER}`,
         order_total: total,
       };
     }
@@ -642,7 +645,7 @@ export class OrderEngine {
       this.flag("escalation", `Refused change to ${quantity} × ${line.name}`);
       return {
         status: "escalated",
-        message: `${quantity} of anything is beyond voice ordering. Hand the lane to a team member.`,
+        message: `${quantity} of anything is beyond voice ordering. Tell the customer a team member will take it from here. ${HANDED_OVER}`,
       };
     }
 
@@ -859,7 +862,7 @@ export class OrderEngine {
     this.flag("escalation", reason);
     return {
       status: "escalated",
-      message: `A team member has been pulled in (${reason}). Tell the customer someone is coming on the line and stop taking items.`,
+      message: `A team member has been pulled in (${reason}). Tell the customer someone is coming on the line. ${HANDED_OVER}`,
     };
   }
 
