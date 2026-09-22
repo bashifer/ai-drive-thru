@@ -184,16 +184,20 @@ export function dispatchTool(
   };
 
   switch (name) {
-    case "add_item":
+    case "add_item": {
+      const whoFor = forWhom(args.for_whom);
       return engine.addItem({
         spoken,
         quantity,
         size,
         modifiers: strings(args.modifiers),
         attribution,
-        forWhom: forWhom(args.for_whom),
+        forWhom: whoFor,
+        // "For him" names someone the agent cannot see; the room ear heard who asked.
+        askedBy: whoFor === "other" ? (opts.room?.whoAskedFor(spoken) ?? undefined) : undefined,
         window: { from: opts.turnStartedAt, to: performance.now() },
       });
+    }
 
     case "modify_item":
       return engine.modifyItem({

@@ -205,6 +205,36 @@ export class RoomEar {
   }
 
   /**
+   * Which other voice asked for this item, if one did.
+   *
+   * "Add the nuggets for him" names a person the agent cannot see. The room ear can: the
+   * kid said "nuggets" a moment ago. Only a voice positively placed with someone who is not
+   * the driver counts, so "one for my son" with nobody else heard still goes to nobody in
+   * particular.
+   */
+  whoAskedFor(phrase: string, withinMs = 60000, now = performance.now()): string | null {
+    const primary = this.primarySpeaker;
+    if (primary === null) return null;
+    const tokens = normalize(phrase)
+      .split(" ")
+      .filter((t) => t.length > 2);
+    if (!tokens.length) return null;
+
+    const tally = new Map<string, number>();
+    for (const w of this.words) {
+      if (w.wall < now - withinMs) continue;
+      const speaker = w.speaker;
+      if (!speaker || speaker === primary || speaker === "PENDING" || speaker === "UNKNOWN") continue;
+      const t = normalize(w.text);
+      if (!tokens.some((tok) => t === tok || t.startsWith(tok) || tok.startsWith(t))) continue;
+      tally.set(speaker, (tally.get(speaker) ?? 0) + 1);
+    }
+
+    const ranked = Array.from(tally.entries()).sort((a, b) => b[1] - a[1]);
+    return ranked.length ? ranked[0][0] : null;
+  }
+
+  /**
    * Everything heard in a window, whoever said it.
    *
    * `attribute` narrows to the words that matched an item, which is right for "who

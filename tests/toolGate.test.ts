@@ -180,6 +180,23 @@ describe("when a tool call runs", () => {
     assert.equal(engine.snapshot().lines[0].unverified, false);
   });
 
+  test("'for someone else' finds the voice the room ear heard ask", () => {
+    const t0 = performance.now() - 20_000;
+    const r = new RoomEar();
+    r.start(t0);
+    // The driver orders, the kid shouts for nuggets, the driver says to add them for him.
+    r.ingest(turn("just a crispy chicken sandwich for me", 6_000, 8_000, true, "A"), performance.now());
+    r.ingest({ ...turn("can I have chicken nuggets nuggets please", 10_000, 12_000, true, "B"), turn_order: 2 }, performance.now());
+    const engine = new OrderEngine();
+
+    dispatchTool(engine, "add_item", { item: "nuggets", for_whom: "someone else" }, { room: r, turnStartedAt: t0 + 15_000 });
+    assert.equal(engine.snapshot().lines[0].owner, "B");
+
+    // Nobody else asked for a pie, so there is no voice to give it to.
+    dispatchTool(engine, "add_item", { item: "apple pie", for_whom: "someone else" }, { room: r, turnStartedAt: t0 + 15_000 });
+    assert.equal(engine.snapshot().lines[1].owner, "UNASSIGNED");
+  });
+
   test("everything still queued can be taken at once", () => {
     const gate = new ToolGate({ room: room(), held: ALL });
     gate.add(call("add_item", { item: "lab burger" }), 12_000);

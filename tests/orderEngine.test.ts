@@ -226,8 +226,19 @@ describe("one order, several people", () => {
   test("the driver can order for someone else", () => {
     const e = new OrderEngine();
     e.addItem({ spoken: "milkshake", quantity: 1, attribution: driver(), forWhom: "other" });
-    assert.equal(confirmed(e)[0].owner, "UNASSIGNED");
+    assert.equal(confirmed(e)[0].owner, "UNASSIGNED", "nobody in the car was heard asking for it");
     assert.equal(confirmed(e)[0].requestedBy, "A");
+  });
+
+  test("'add the nuggets for him' gives them to the voice that asked for nuggets", () => {
+    // Bench, 22 Sep (backseat-approved): the kid asked, the focused ear mangled it, and the
+    // driver's "yeah, add the nuggets for him" put them in an unassigned bag. The room ear
+    // heard who "him" is.
+    const e = new OrderEngine();
+    e.addItem({ spoken: "nuggets", quantity: 1, attribution: driver("add the nuggets for him"), forWhom: "other", askedBy: "B" });
+    const nuggets = confirmed(e)[0];
+    assert.equal(nuggets.owner, "B", "the kid's bag");
+    assert.equal(nuggets.requestedBy, "A", "the driver is the one who asked for it to go on");
   });
 
   test("'hers without pickles' splits the line instead of changing both burgers", () => {

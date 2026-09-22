@@ -135,6 +135,8 @@ export type AddArgs = {
   modifiers?: string[];
   attribution?: Attribution;
   forWhom?: ForWhom;
+  /** For "one for him": the other voice the room ear heard ask for this item. */
+  askedBy?: string;
   /** Conversation window the attribution came from (performance.now ms). */
   window?: { from: number; to: number };
 };
@@ -289,9 +291,10 @@ export class OrderEngine {
     return speaker === DRIVER || (this.driver !== null && speaker === this.driver);
   }
 
-  private ownerFor(speaker: string, forWhom: ForWhom | undefined): string {
+  private ownerFor(speaker: string, forWhom: ForWhom | undefined, askedBy?: string): string {
     if (forWhom === "driver") return this.driver ?? DRIVER;
-    if (forWhom === "other") return UNASSIGNED;
+    // "Add the nuggets for him": the room ear heard who asked for nuggets.
+    if (forWhom === "other") return askedBy && !unplaced(askedBy) ? askedBy : UNASSIGNED;
     return unplaced(speaker) ? (this.driver ?? DRIVER) : speaker;
   }
 
@@ -383,7 +386,7 @@ export class OrderEngine {
       ),
       unitPrice: priceOf(item, args.size),
       status: sideVoice || needsQuantityCheck ? "pending" : "confirmed",
-      owner: this.ownerFor(speaker, args.forWhom),
+      owner: this.ownerFor(speaker, args.forWhom, args.askedBy),
       requestedBy,
       unverified: verdict === "unverified",
       addedAt: Date.now(),

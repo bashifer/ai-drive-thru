@@ -298,8 +298,9 @@ room ear, the gate and the closing are not in it.
   focused ear heard the kid's "Nuggets, please" as "Next, please", and the agent read out the
   chicken menu instead of booking the kid's request, so there was nothing to hold. The
   driver's "yeah, go ahead and add the nuggets for him" then booked them for "someone else":
-  on the ticket, sent to the kitchen, in an unassigned bag rather than the kid's. The room
-  ear had heard the kid ask for nuggets; tying "for him" to that voice is the next change.
+  on the ticket, sent to the kitchen, in an unassigned bag rather than the kid's. Fixed after
+  this run, so the reports still show it: "for him" now goes to the other voice the room ear
+  heard ask for that item in the last minute, and to nobody in particular when none did.
 - **The model sometimes refuses an absurd quantity itself** instead of letting the ticket
   decide, as in the escalation row above.
 - **A code-switched sentence can lose half of itself.** "Quiero dos hamburguesas, and a large
