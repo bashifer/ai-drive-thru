@@ -27,6 +27,74 @@ export type QueuedToolCall = {
   turnStartedAt: number;
 };
 
+/** Calls that read who spoke or what they said, and so wait for the room ear. */
+const LISTENS = new Set(["add_item", "modify_item", "remove_item", "confirm_held_item"]);
+
+export type GateOptions = {
+  /** Diarization bookkeeping; null means nobody is listening for who spoke. */
+  room: RoomEar | null;
+  /** Tools declared `execution_mode: "hold"` (`HELD_TOOLS` in agentConfig). */
+  held: ReadonlySet<string>;
+  /** Longest a call waits for the room ear before it runs on whatever is there. */
+  maxWaitMs?: number;
+  /** One reply's calls arrive tens of milliseconds apart; their results go back together. */
+  settleMs?: number;
+};
+
+/**
+ * When a tool call may run.
+ *
+ * An interactive tool's reply stays open ~2.3 s after the call for a transition phrase
+ * this agent does not say, and its result may only go back once `reply.done` is the
+ * latest event — so a reply with any interactive call in it runs at `reply.done`
+ * (`drain`). That slot is also when the room ear catches up with who said what.
+ *
+ * A held tool keeps the agent silent until our result and answers ~50 ms after it, so
+ * it runs as early as is safe: once the room ear has finished the turn, if the call
+ * reads it — on the recorded lane the room ear's turn beat the tool call on all eight
+ * customer turns — and never later than `maxWaitMs`, after which it runs on what is
+ * there and the engine's fail-safes apply (an unplaced voice is the driver's, no words
+ * is no yes).
+ */
+export class ToolGate {
+  private calls: (QueuedToolCall & { at: number })[] = [];
+  private maxWaitMs: number;
+  private settleMs: number;
+
+  constructor(private opts: GateOptions) {
+    this.maxWaitMs = opts.maxWaitMs ?? 1500;
+    this.settleMs = opts.settleMs ?? 120;
+  }
+
+  get size() {
+    return this.calls.length;
+  }
+
+  add(call: QueuedToolCall, at: number) {
+    this.calls.push({ ...call, at });
+  }
+
+  /** The calls to run now, in the order they came, or none yet. */
+  due(at: number): QueuedToolCall[] {
+    if (!this.calls.length || this.calls.some((c) => !this.opts.held.has(c.name))) return [];
+    const first = this.calls[0];
+    const last = this.calls[this.calls.length - 1];
+    const settled = at - last.at >= this.settleMs;
+    const room = this.opts.room;
+    const heard =
+      !room || !this.calls.some((c) => LISTENS.has(c.name)) || room.heardSince(first.turnStartedAt);
+    if ((settled && heard) || at - first.at >= this.maxWaitMs) return this.drain();
+    return [];
+  }
+
+  /** Everything still waiting, now: the reply they belong to is over. */
+  drain(): QueuedToolCall[] {
+    return this.calls
+      .splice(0)
+      .map(({ callId, name, args, turnStartedAt }) => ({ callId, name, args, turnStartedAt }));
+  }
+}
+
 /**
  * Runs the agent's tool calls against the ticket, and remembers the ones whose
  * result never reached the agent.

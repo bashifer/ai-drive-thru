@@ -1,13 +1,13 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { buildSessionConfig, DEFAULT_GREETING } from "../src/lib/agentConfig";
+import { buildSessionConfig, DEFAULT_GREETING, HELD_TOOLS } from "../src/lib/agentConfig";
 import { RoomEar, type SpeakerRevision } from "../src/lib/attribution";
 import { menuKeyterms } from "../src/lib/menu";
 import { OrderEngine } from "../src/lib/orderEngine";
 import { isAudibleReply, speechEndSample } from "../src/lib/replyTiming";
 import { describeActual, percentile, scoreOrder, type Score } from "../src/lib/scoring";
 import type { SttTurn } from "../src/lib/sttStream";
-import { ToolRunner } from "../src/lib/toolDispatch";
+import { ToolGate, ToolRunner, type QueuedToolCall } from "../src/lib/toolDispatch";
 import { connectStreaming, connectVoiceAgent, int16ToBase64 } from "./aai";
 import { loadNoiseBed } from "./fetch-noise";
 import { BABBLE_LINE, SCENES, type Scene, type Utterance } from "./scenes";
@@ -146,6 +146,8 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
   );
   const room = new RoomEar();
   const tools = new ToolRunner(engine, { room: opts.baseline ? null : room, assumeDriver: opts.baseline });
+  // The same gate as the page: interactive calls at reply.done, held ones as soon as they may.
+  const gate = new ToolGate({ room: opts.baseline ? null : room, held: HELD_TOOLS });
 
   const agent = await connectVoiceAgent();
   const stt = await connectStreaming({
@@ -164,9 +166,8 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
 
   // --- agent state -------------------------------------------------------
   let ready = false;
-  let lastEventType = "";
-  const pendingResults: { call_id: string; result: string; is_error: boolean }[] = [];
-  const queuedCalls: { callId: string; name: string; args: Record<string, unknown>; turnStartedAt: number }[] = [];
+  /** When the oldest call now in the gate arrived. */
+  let heldSince = 0;
   let replyStartedAt = 0;
   let replyAudioMs = 0;
   let agentSpeaking = false;
@@ -192,10 +193,41 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
   let toolCalls = 0;
   let correctionsLanded = 0;
 
-  const flushTools = () => {
-    if (lastEventType !== "reply.done" || !pendingResults.length) return;
-    for (const r of pendingResults) agent.send(JSON.stringify({ type: "tool.result", ...r }));
-    pendingResults.length = 0;
+  const at = () => Math.round(performance.now() - startedAt);
+
+  /** Run calls in order; unless their reply was cut off, the result goes straight back. */
+  const runCalls = (calls: QueuedToolCall[], resultReachesAgent: boolean) => {
+    if (!calls.length) return;
+    const first = calls[0];
+    trace.push(
+      `${at()} ran ${Math.round(performance.now() - heldSince)} ms after the tool call — ${
+        !opts.baseline && room.heardSince(first.turnStartedAt) ? "room ear had the turn" : "ran without the room ear's turn"
+      }`,
+    );
+    for (const call of calls) {
+      if (!opts.baseline && typeof call.args.item === "string") {
+        const a = room.attribute(call.args.item, call.turnStartedAt);
+        trace.push(`${at()} attribute("${call.args.item}") -> ${a.speaker}/${a.verdict} evidence="${a.evidence.slice(0, 50)}"`);
+      }
+      // An interrupted reply still gets its work done, only the answer is withheld.
+      const outcome = tools.run(call, resultReachesAgent);
+      if (call.name === "modify_item" && outcome.status === "ok") correctionsLanded++;
+      trace.push(
+        `${at()} ${call.name}(${JSON.stringify(call.args).slice(0, 90)}) -> ${outcome.status}${
+          resultReachesAgent ? "" : " [withheld]"
+        }`,
+      );
+      if (!resultReachesAgent) continue;
+      agent.send(
+        JSON.stringify({
+          type: "tool.result",
+          call_id: call.callId,
+          result: JSON.stringify(outcome),
+          is_error: outcome.status === "rejected",
+        }),
+      );
+    }
+    toolWorkAt = performance.now();
   };
 
   agent.on("message", (raw: Buffer) => {
@@ -205,7 +237,6 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
     } catch {
       return;
     }
-    lastEventType = msg.type;
     if (msg.type !== "reply.audio") trace.push(`${Math.round(performance.now() - startedAt)} ${msg.type}`);
 
     switch (msg.type) {
@@ -239,6 +270,7 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
         // overlap, not an answer, and is not timed at all.
         if (awaitingAudio && isAudibleReply(data)) {
           awaitingAudio = false;
+          trace.push(`${at()} first audible word`);
           const midSentence = active.some((p) => p.offset < p.speechEnd);
           if (lastWordAt !== null && !midSentence) {
             (toolCalledThisTurn ? toolLatencies : latencies).push(Math.round(performance.now() - lastWordAt));
@@ -261,49 +293,26 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
         agentSpeaking = false;
         speechEndsAt = Math.max(performance.now(), replyStartedAt + replyAudioMs);
         const interrupted = (msg as { status?: string }).status === "interrupted";
-        if (interrupted) {
-          bargeIns++;
-          pendingResults.length = 0;
-        }
-        // Executed here, not on tool.call: diarization finalises a beat later.
-        // An interrupted reply still gets its work done, only the answer is withheld.
-        for (const call of queuedCalls.splice(0)) {
-          if (!opts.baseline && typeof call.args.item === "string") {
-            const a = room.attribute(call.args.item, call.turnStartedAt);
-            trace.push(
-              `${Math.round(performance.now() - startedAt)} attribute("${call.args.item}") -> ${a.speaker}/${a.verdict} evidence="${a.evidence.slice(0, 50)}"`,
-            );
-          }
-          const outcome = tools.run(call, !interrupted);
-          if (call.name === "modify_item" && outcome.status === "ok") correctionsLanded++;
-          trace.push(
-            `${Math.round(performance.now() - startedAt)} ${call.name}(${JSON.stringify(call.args).slice(0, 90)}) -> ${
-              outcome.status
-            }${interrupted ? " [withheld]" : ""}`,
-          );
-          if (interrupted) continue;
-          pendingResults.push({
-            call_id: call.callId,
-            result: JSON.stringify(outcome),
-            is_error: outcome.status === "rejected",
-          });
-        }
-        if (!interrupted) {
-          flushTools();
-          if (pendingResults.length === 0 && toolWorkAt) toolWorkAt = performance.now();
-        }
+        if (interrupted) bargeIns++;
+        // Interactive calls run here, where their results are allowed back; a held reply
+        // ends when its results arrive, so none of those is normally left.
+        runCalls(gate.drain(), !interrupted);
         break;
       }
       case "tool.call":
         toolCalls++;
         toolCalledThisTurn = true;
         toolWorkAt = performance.now();
-        queuedCalls.push({
-          callId: String(msg.call_id),
-          name: String(msg.name),
-          args: (msg.arguments ?? {}) as Record<string, unknown>,
-          turnStartedAt,
-        });
+        if (gate.size === 0) heldSince = performance.now();
+        gate.add(
+          {
+            callId: String(msg.call_id),
+            name: String(msg.name),
+            args: (msg.arguments ?? {}) as Record<string, unknown>,
+            turnStartedAt,
+          },
+          performance.now(),
+        );
         break;
       case "session.error":
         transcript.push({ who: "error", text: `${msg.code}: ${msg.message}` });
@@ -318,7 +327,13 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
     } catch {
       return;
     }
-    if (msg.type === "Turn") room.ingest(msg as unknown as SttTurn);
+    if (msg.type === "Turn") {
+      const turn = msg as unknown as SttTurn;
+      room.ingest(turn);
+      if (turn.end_of_turn && turn.transcript?.trim()) {
+        trace.push(`${at()} room turn ${turn.speaker_label ?? "?"}: "${turn.transcript.slice(0, 50)}"`);
+      }
+    }
     if (msg.type === "SpeakerRevision") revisions.push(msg as unknown as SpeakerRevision);
     if (msg.type === "Termination") terminated = true;
   });
@@ -351,6 +366,7 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
   await new Promise<void>((done) => {
     const tick = setInterval(() => {
       const now = performance.now();
+      runCalls(gate.due(now), true);
 
       if (ready) {
         for (let i = 0; i < queue.length; i++) {
@@ -361,6 +377,7 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
           if (!shouldStart(u, now)) continue;
           const samples = audio.get(u);
           if (samples) {
+            trace.push(`${at()} ${u.role} starts: "${u.text.slice(0, 40)}"`);
             active.push({ samples, offset: 0, gain: u.gain ?? 1, utterance: u, speechEnd: speechEndSample(samples, SAMPLE_RATE) });
             if (u.cue.kind !== "with_previous") previousStartedAt = now;
           }
@@ -379,7 +396,10 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
           frame[i] += (s / 32768) * p.gain;
         }
         // This frame carries the line's last word: the clock for the agent's reply starts.
-        if (p.offset < p.speechEnd && p.offset + AGENT_FRAME >= p.speechEnd) lastWordAt = now;
+        if (p.offset < p.speechEnd && p.offset + AGENT_FRAME >= p.speechEnd) {
+          lastWordAt = now;
+          trace.push(`${at()} last word`);
+        }
         p.offset += AGENT_FRAME;
         if (p.offset >= p.samples.length) {
           active.splice(a, 1);
@@ -408,6 +428,7 @@ async function runScene(scene: Scene, opts: { baseline: boolean }): Promise<Scen
         !agentSpeaking &&
         !awaitingAgentTurn &&
         now > speechEndsAt &&
+        gate.size === 0 &&
         (toolWorkAt === 0 || now - toolWorkAt > 4000);
 
       if (settled || now - startedAt > HARD_CAP_MS) {

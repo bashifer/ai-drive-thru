@@ -81,7 +81,25 @@ const sizeParam = {
   description: "Size, only if the customer said one. Leave empty otherwise, never assume.",
 };
 
-export const TOOLS: ToolDef[] = [
+/**
+ * The tools that end the conversation are held; the rest stay interactive.
+ *
+ * In the default interactive mode the reply stays open ~2.3 s after a tool call for a
+ * transition phrase ("let me check that"), and the result can only go back after it.
+ * This agent says nothing there, so it is dead air — and closing an order used to pay
+ * it twice. Held, the agent is silent until the result lands and answers ~50 ms later.
+ *
+ * Held is not safe mid-order. Speech that starts while a tool is held is dropped: "a lab
+ * burger and onion rings… wait, no pickles on that burger" lost the correction every
+ * time we tried it (bench and two probes, 22 Sep), where the interactive slot absorbs
+ * it and the next turn applies it. Afterthoughts are how people order, so only the calls
+ * after which the customer is done talking are held.
+ */
+export const HELD_TOOLS: ReadonlySet<string> = new Set(["finalize_order", "call_crew_member"]);
+
+const held = (tool: ToolDef): ToolDef => (HELD_TOOLS.has(tool.name) ? { ...tool, execution_mode: "hold" } : tool);
+
+const TOOL_DEFS: ToolDef[] = [
   {
     type: "function",
     name: "add_item",
@@ -246,6 +264,8 @@ export const TOOLS: ToolDef[] = [
     },
   },
 ];
+
+export const TOOLS: ToolDef[] = TOOL_DEFS.map(held);
 
 export type AgentOptions = {
   voice?: string;

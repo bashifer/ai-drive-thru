@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { AudioEngine, type InjectedClip } from "./audio";
 import { RoomEar, guestName, type SpeakerRevision } from "./attribution";
-import { buildSessionConfig, DEFAULT_GREETING, systemPromptFor, type AgentOptions } from "./agentConfig";
+import { buildSessionConfig, DEFAULT_GREETING, HELD_TOOLS, systemPromptFor, type AgentOptions } from "./agentConfig";
 import { menuKeyterms, resolveMenuItem } from "./menu";
 import { OrderEngine, type OrderSnapshot, type Outcome } from "./orderEngine";
 import { isAudibleReply } from "./replyTiming";
@@ -11,7 +11,7 @@ import { SCENARIOS, clipUrl, type Scenario, type ScenarioCue } from "./scenarios
 import { describeActual, scoreOrder, type Score } from "./scoring";
 import { ShadowCart } from "./shadowCart";
 import { TapeRecorder, decodeVoice, type Tape } from "./tape";
-import { ToolRunner, type QueuedToolCall } from "./toolDispatch";
+import { ToolGate, ToolRunner, type QueuedToolCall } from "./toolDispatch";
 import { SttDiarizationClient, type SttEvent, type SttTurn } from "./sttStream";
 import { VoiceAgentClient, type VoiceAgentEvent } from "./voiceAgent";
 
@@ -123,7 +123,9 @@ export function useBackseat() {
   const agentSpeaking = useRef(false);
   const askedAbout = useRef<Set<string>>(new Set());
   const sideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const queuedCalls = useRef<QueuedCall[]>([]);
+  /** Tool calls waiting for their moment: `reply.done`, or for a held tool, the room ear (`ToolGate`). */
+  const gateRef = useRef<ToolGate | null>(null);
+  const gateTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const toolRunner = useRef<ToolRunner | null>(null);
   /** A scripted line has been played and the agent has not taken its turn yet. */
   const awaitingAgentTurn = useRef(false);
@@ -202,10 +204,10 @@ export function useBackseat() {
   }, []);
 
   /**
-   * Tool calls are executed when the agent's transition phrase is done, not the
-   * instant they arrive. Diarization finalises a turn about a second behind the
-   * agent's own end-of-turn, and this is exactly the window the protocol already
-   * gives us before a `tool.result` may be sent.
+   * One tool call against both carts, when `ToolGate` says it may run: at `reply.done`
+   * for an interactive tool — diarization finalises a turn about a second behind the
+   * agent's end of turn, and the transition slot covers it — or straight away for a held
+   * one, which keeps the agent silent until its result.
    */
   const runTool = useCallback((call: QueuedCall, resultReachesAgent: boolean): Outcome => {
     if (call.name === "add_item" && typeof call.args.item === "string") {
@@ -218,6 +220,36 @@ export function useBackseat() {
     ));
     return runner.run(call, resultReachesAgent);
   }, []);
+
+  /** Run calls in order and, unless their reply was cut off, answer the agent at once. */
+  const runCalls = useCallback(
+    (calls: QueuedCall[], resultReachesAgent: boolean) => {
+      for (const call of calls) {
+        // Interrupted replies still get their work done; only the answer is withheld.
+        const outcome = runTool(call, resultReachesAgent);
+        pushEvent({
+          ear: "engine",
+          label: `${call.name} → ${outcome.status}${resultReachesAgent ? "" : " (reply interrupted)"}`,
+          detail: outcome.message.slice(0, 120),
+          tone: outcome.status === "ok" ? "good" : outcome.status === "not_found" ? "normal" : "warn",
+        });
+        if (resultReachesAgent) agentRef.current?.sendToolResult(call.callId, outcome, outcome.status === "rejected");
+      }
+      if (calls.length) syncOrder();
+    },
+    [pushEvent, runTool, syncOrder],
+  );
+
+  const gate = useCallback(() => (gateRef.current ??= new ToolGate({ room: roomRef.current, held: HELD_TOOLS })), []);
+
+  const pumpGate = useCallback(() => {
+    const held = gate();
+    runCalls(held.due(performance.now()), true);
+    if (held.size === 0 && gateTimer.current) {
+      clearInterval(gateTimer.current);
+      gateTimer.current = null;
+    }
+  }, [gate, runCalls]);
 
   /**
    * The focused ear may not hear a back-seat voice at all — far-field Voice Focus is
@@ -281,7 +313,6 @@ export function useBackseat() {
 
   const handleAgentEvent = useCallback(
     (e: VoiceAgentEvent) => {
-      const agent = agentRef.current;
       const audio = audioRef.current;
 
       switch (e.type) {
@@ -365,20 +396,9 @@ export function useBackseat() {
             pushEvent({ ear: "agent", label: "barge-in", detail: "customer talked over the agent", tone: "warn" });
           }
 
-          const calls = queuedCalls.current;
-          queuedCalls.current = [];
-          for (const call of calls) {
-            // Interrupted replies still get their work done; only the answer is withheld.
-            const outcome = runTool(call, !interrupted);
-            pushEvent({
-              ear: "engine",
-              label: `${call.name} → ${outcome.status}${interrupted ? " (reply interrupted)" : ""}`,
-              detail: outcome.message.slice(0, 120),
-              tone: outcome.status === "ok" ? "good" : outcome.status === "not_found" ? "normal" : "warn",
-            });
-            if (!interrupted) agent?.queueToolResult(call.callId, outcome, outcome.status === "rejected");
-          }
-          if (calls.length) syncOrder();
+          // Interactive calls run here, where their results are allowed back. A held
+          // reply ends when its results arrive, so none of those is normally left.
+          runCalls(gate().drain(), !interrupted);
           break;
         }
 
@@ -389,12 +409,11 @@ export function useBackseat() {
             arguments: Record<string, unknown>;
           };
           sessionUsed.current = true;
-          queuedCalls.current.push({
-            callId: call_id,
-            name,
-            args: args ?? {},
-            turnStartedAt: turnStartedAt.current,
-          });
+          gate().add(
+            { callId: call_id, name, args: args ?? {}, turnStartedAt: turnStartedAt.current },
+            performance.now(),
+          );
+          gateTimer.current ??= setInterval(pumpGate, 40);
           setMetrics((m) => ({ ...m, toolCalls: m.toolCalls + 1 }));
           break;
         }
@@ -413,7 +432,7 @@ export function useBackseat() {
           break;
       }
     },
-    [checkSideRequests, pushEvent, pushLine, runTool, syncOrder],
+    [checkSideRequests, gate, pumpGate, pushEvent, pushLine, runCalls],
   );
 
   const handleRoomEvent = useCallback(
@@ -442,10 +461,10 @@ export function useBackseat() {
     orderRef.current.reset();
     shadowRef.current.reset();
     askedAbout.current.clear();
-    queuedCalls.current = [];
+    gate().drain();
     toolRunner.current = null;
     syncOrder();
-  }, [syncOrder]);
+  }, [gate, syncOrder]);
 
   /** Everything that belongs to one car: its ticket, its turns, its voices, its transcript. */
   const clearCar = useCallback(() => {

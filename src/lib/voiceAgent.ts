@@ -63,8 +63,6 @@ export type VoiceAgentEvent =
   | { type: "session.error"; code: string; message: string; param?: string }
   | { type: string; [key: string]: unknown };
 
-type PendingResult = { call_id: string; result: string; is_error: boolean };
-
 const WS_URL = "wss://agents.assemblyai.com/v1/ws";
 
 /**
@@ -74,8 +72,6 @@ const WS_URL = "wss://agents.assemblyai.com/v1/ws";
 export class VoiceAgentClient {
   private ws: WebSocket | null = null;
   private ready = false;
-  private lastEventType: string | null = null;
-  private pending: PendingResult[] = [];
   private handler: (e: VoiceAgentEvent) => void = () => {};
 
   sessionId: string | null = null;
@@ -129,23 +125,10 @@ export class VoiceAgentClient {
   }
 
   private route(msg: VoiceAgentEvent) {
-    this.lastEventType = msg.type;
-
     if (msg.type === "session.ready") {
       this.ready = true;
       this.sessionId = (msg as { session_id: string }).session_id;
     }
-
-    if (msg.type === "reply.done") {
-      const status = (msg as { status?: string }).status;
-      if (status === "interrupted") {
-        // The reply that asked for these tool calls is gone; its results are stale.
-        this.pending = [];
-      } else {
-        this.flushToolResults();
-      }
-    }
-
     this.handler(msg);
   }
 
@@ -156,25 +139,20 @@ export class VoiceAgentClient {
   }
 
   /**
-   * Tool results must land when `reply.done` is the latest event: earlier and the
-   * agent is still mid transition phrase, later and a new turn has started.
+   * A held tool's result is taken the moment it is ready and the answer starts from it.
+   * An interactive tool's result is only accepted while `reply.done` is the latest
+   * event, so those are sent from the `reply.done` handler (`ToolGate.drain`).
    */
-  queueToolResult(callId: string, result: unknown, isError = false) {
-    this.pending.push({
-      call_id: callId,
-      result: typeof result === "string" ? result : JSON.stringify(result),
-      is_error: isError,
-    });
-    this.flushToolResults();
-  }
-
-  private flushToolResults() {
-    if (this.lastEventType !== "reply.done" || this.pending.length === 0) return;
+  sendToolResult(callId: string, result: unknown, isError = false) {
     if (this.ws?.readyState !== WebSocket.OPEN) return;
-    for (const item of this.pending) {
-      this.ws.send(JSON.stringify({ type: "tool.result", ...item }));
-    }
-    this.pending = [];
+    this.ws.send(
+      JSON.stringify({
+        type: "tool.result",
+        call_id: callId,
+        result: typeof result === "string" ? result : JSON.stringify(result),
+        is_error: isError,
+      }),
+    );
   }
 
   /** Mutable mid-session: system_prompt, keyterms, tools, turn_detection, volume. */

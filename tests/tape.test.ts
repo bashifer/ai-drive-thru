@@ -43,14 +43,23 @@ describe("the replay tape", () => {
     rec.agent({ type: "session.updated", config: {} });
     rec.agent({ type: "transcript.agent.delta", reply_id: "r", item_id: "i", delta: "Wel", start_ms: null, end_ms: null });
     rec.agent({ type: "tool.call", call_id: "c1", name: "add_item", arguments: { item: "nuggets", quantity: 260 } });
-    rec.room({ type: "Turn", turn_order: 0, transcript: "I want", end_of_turn: false });
+    rec.room({ type: "Turn", turn_order: 0, transcript: "I want", end_of_turn: false, words: [{ text: "I", start: 0, end: 90 }] });
+    rec.room({ type: "Turn", turn_order: 0, transcript: "I want 260", end_of_turn: false });
     rec.room({ type: "Turn", turn_order: 0, transcript: "I want 260 chicken nuggets.", end_of_turn: true, words: [] });
     rec.clip(0);
 
     const [car] = rec.tape().cars;
     const kinds = car.events.map((e) => (e.ear === "agent" || e.ear === "room" ? e.event.type : e.ear));
-    assert.deepEqual(kinds, ["session.ready", "tool.call", "Turn", "clip"]);
+    assert.deepEqual(kinds, ["session.ready", "tool.call", "Turn", "Turn", "clip"]);
     assert.deepEqual((car.events[0] as { event: object }).event, { type: "session.ready", session_id: "sess_1" });
+    // A held tool call waits while a turn is open, so the replay has to know when one
+    // opened — once, without its words.
+    assert.deepEqual((car.events[2] as { event: object }).event, {
+      type: "Turn",
+      turn_order: 0,
+      transcript: "I want",
+      end_of_turn: false,
+    });
   });
 
   test("a burst of audio chunks is one event, and a car that never ran a test is not kept", () => {

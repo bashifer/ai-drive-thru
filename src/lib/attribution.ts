@@ -43,8 +43,11 @@ export type SpeakerRevision = {
 export class RoomEar {
   /** Wall-clock ms at which the streaming session started (word.start is relative to it). */
   private startedAt = 0;
-  private words: (SttWord & { wall: number; turnOrder: number })[] = [];
+  /** `wall` is when the word was spoken, `arrivedAt` when its final turn reached us. */
+  private words: (SttWord & { wall: number; turnOrder: number; arrivedAt: number })[] = [];
   private stats = new Map<string, SpeakerStat>();
+  /** A turn someone is still in the middle of: the room ear has words for it, not yet final. */
+  private openTurn: number | null = null;
 
   turns: { transcript: string; speaker: string; at: number }[] = [];
   /** Turns whose speaker the end-of-session pass corrected. */
@@ -56,6 +59,7 @@ export class RoomEar {
     this.stats.clear();
     this.turns = [];
     this.revisedTurns = 0;
+    this.openTurn = null;
   }
 
   get primarySpeaker(): string | null {
@@ -74,23 +78,41 @@ export class RoomEar {
     return Array.from(this.stats.values()).sort((a, b) => a.firstHeardAt - b.firstHeardAt);
   }
 
-  ingest(turn: SttTurn) {
-    if (!turn.end_of_turn) return;
+  ingest(turn: SttTurn, at = performance.now()) {
+    if (!turn.end_of_turn) {
+      if (turn.transcript?.trim()) this.openTurn = Math.max(this.openTurn ?? turn.turn_order, turn.turn_order);
+      return;
+    }
+    // A final closes its own turn — not a later one somebody is still speaking.
+    if (this.openTurn !== null && turn.turn_order >= this.openTurn) this.openTurn = null;
 
     const label = turn.speaker_label ?? "UNKNOWN";
     if (turn.transcript?.trim()) {
-      this.turns.push({ transcript: turn.transcript, speaker: label, at: performance.now() });
+      this.turns.push({ transcript: turn.transcript, speaker: label, at });
       if (this.turns.length > 60) this.turns.shift();
     }
 
     for (const w of turn.words ?? []) {
       if (w.word_is_final === false) continue;
       const speaker = w.speaker && w.speaker !== "PENDING" ? w.speaker : label;
-      this.words.push({ ...w, speaker, wall: this.startedAt + w.start, turnOrder: turn.turn_order });
+      this.words.push({ ...w, speaker, wall: this.startedAt + w.start, turnOrder: turn.turn_order, arrivedAt: at });
     }
 
     if (this.words.length > 900) this.words = this.words.slice(-600);
     this.rebuildStats();
+  }
+
+  /**
+   * Whether the room ear has finished the customer turn the agent noticed at `since`:
+   * a final turn has arrived since then, and nobody is still mid-sentence.
+   *
+   * Who asked for an item and whether the driver said yes are both read from these
+   * words, so a tool call that acts on the turn should not run before they are here.
+   * It goes by arrival, not by word timings: the agent's speech.started lags the first
+   * word by over a second, so a short "that's all" can be over before `since`.
+   */
+  heardSince(since: number): boolean {
+    return this.openTurn === null && this.words.some((w) => w.arrivedAt >= since);
   }
 
   private rebuildStats() {

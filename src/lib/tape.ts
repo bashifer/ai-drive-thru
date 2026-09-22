@@ -36,13 +36,23 @@ const AGENT_RATE = 24000;
 const TAPE_RATE = 16000;
 
 /**
- * Only what the handlers use. Partial turns never reach attribution, agent text deltas
- * are not drawn, and the session's echoed configuration is the same every time.
+ * Only what the handlers use. Agent text deltas are not drawn, and the session's echoed
+ * configuration is the same every time. A partial turn never reaches attribution, but a
+ * held tool call waits while one is open (`ToolGate`), so the moment each turn opened is
+ * kept — once per turn, without its words. `opened` is the turns already marked.
  */
-function keep(ear: "agent" | "room", event: VoiceAgentEvent | SttEvent): VoiceAgentEvent | SttEvent | null {
+function keep(
+  ear: "agent" | "room",
+  event: VoiceAgentEvent | SttEvent,
+  opened: Set<number>,
+): VoiceAgentEvent | SttEvent | null {
   if (ear === "room") {
-    if (event.type === "Turn") return (event as SttTurn).end_of_turn ? event : null;
-    return event.type === "SpeakerRevision" ? event : null;
+    if (event.type !== "Turn") return event.type === "SpeakerRevision" ? event : null;
+    const turn = event as SttTurn;
+    if (turn.end_of_turn) return event;
+    if (!turn.transcript?.trim() || opened.has(turn.turn_order)) return null;
+    opened.add(turn.turn_order);
+    return { type: "Turn", turn_order: turn.turn_order, transcript: turn.transcript, end_of_turn: false };
   }
   if (event.type === "transcript.agent.delta" || event.type === "session.updated") return null;
   if (event.type === "session.ready") return { type: "session.ready", session_id: (event as { session_id: string }).session_id };
@@ -51,12 +61,13 @@ function keep(ear: "agent" | "room", event: VoiceAgentEvent | SttEvent): VoiceAg
 
 export class TapeRecorder {
   private cars: TapeCar[] = [];
-  private car: (Omit<TapeCar, "events"> & { t0: number; events: RecordedEvent[] }) | null = null;
+  private car: (Omit<TapeCar, "events"> & { t0: number; events: RecordedEvent[]; opened: Set<number> }) | null =
+    null;
 
   /** A car pulled up: everything from here is timed against this moment. */
   startCar(at = performance.now()) {
     this.finishCar();
-    this.car = { scenarioId: "", roomStartedAt: 0, events: [], durationMs: 0, t0: at };
+    this.car = { scenarioId: "", roomStartedAt: 0, events: [], durationMs: 0, t0: at, opened: new Set() };
   }
 
   roomStarted(at = performance.now()) {
@@ -73,12 +84,12 @@ export class TapeRecorder {
       this.voice(base64ToBytes((event as { data: string }).data));
       return;
     }
-    const kept = keep("agent", event);
+    const kept = keep("agent", event, this.car.opened);
     if (kept) this.car.events.push({ t: this.now(), ear: "agent", event: kept as VoiceAgentEvent });
   }
 
   room(event: SttEvent) {
-    const kept = this.car && keep("room", event);
+    const kept = this.car && keep("room", event, this.car.opened);
     if (this.car && kept) this.car.events.push({ t: this.now(), ear: "room", event: kept as SttEvent });
   }
 
