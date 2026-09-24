@@ -70,7 +70,7 @@ describe("the same calls, two carts", () => {
     call("add_item", { item: "chocolate shake" });
 
     assert.equal(real.snapshot().lines.find((l) => l.name === "Milkshake")?.status, "pending");
-    assert.deepEqual(ticket(shadow.snapshot()), ["1×Cola/small", "1×Lab Burger", "1×Milkshake"]);
+    assert.deepEqual(ticket(shadow.snapshot()), ["1×Cola/small", "1×Lab Burger", "1×Milkshake+chocolate"]);
   });
 
   test("the driver's no takes a held request off the trusting cart too", () => {

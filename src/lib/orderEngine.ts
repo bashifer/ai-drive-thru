@@ -2,10 +2,14 @@
 
 import type { Attribution } from "./attribution";
 import {
+  AMBIGUITY_MARGIN,
   MENU,
   TAX_RATE,
   canonicalModifier,
+  canonicalModifiers,
+  impliedModifiers,
   isBackChannel,
+  modifierParts,
   saysDone,
   saysYes,
   modifiersInPhrase,
@@ -157,6 +161,8 @@ export type ModifyArgs = {
 let lineCounter = 0;
 const newLineId = () => `line_${++lineCounter}`;
 
+const sameModifiers = (a: string[], b: string[]) => a.length === b.length && [...a].sort().join("|") === [...b].sort().join("|");
+
 /**
  * Display name for whoever a line belongs to. Uses the engine's own notion of the
  * driver, which is what ownership is decided against, not the room ear's latest guess.
@@ -243,7 +249,7 @@ export class OrderEngine {
     if (!matches.length) return {};
     // Two candidates are a real question only when they are almost equally likely;
     // "small garlic fry" beats plain "fries" clearly enough to act on.
-    if (matches.length > 1 && matches[1].score > matches[0].score - 0.08) {
+    if (matches.length > 1 && matches[1].score > matches[0].score - AMBIGUITY_MARGIN) {
       return { item: matches[0].item, options: matches.slice(0, 3).map((m) => m.item.name) };
     }
     return { item: matches[0].item };
@@ -344,13 +350,25 @@ export class OrderEngine {
     // Only a positive identification of another voice holds an item back.
     const sideVoice = this.speakerAware && verdict === "other_voice";
 
+    // What the kitchen makes: the changes they asked for, the ones inside the item's own
+    // name ("a large diet coke", "chocolate shake"), and what the name itself implies ("a
+    // hamburger" is the burger without cheese).
+    const chosen = Array.from(
+      new Set([
+        ...(args.modifiers ?? []).flatMap((m) => canonicalModifiers(item, m)),
+        ...modifiersInPhrase(item, args.spoken),
+      ]),
+    );
+    const modifiers = [...chosen, ...impliedModifiers(item, args.spoken, chosen)];
+
     // Repeat-loop guard: the failure mode behind "260 nuggets".
     //
     // What makes a repeat is conversational, not temporal: the same item asked for
     // again with nothing ordered in between, and no number attached. A drive-thru
     // speaker is bad enough that people say things twice, and the gap between the
     // two tries is however long the agent took to answer. It is one person saying it
-    // twice: the same item from another voice is that person's request.
+    // twice: the same item from another voice is that person's request, and the same item
+    // made differently ("a cheeseburger… and a hamburger with only pickles") is a second one.
     const last = this.lines[this.lines.length - 1];
     const backToBack =
       this.guards &&
@@ -358,6 +376,8 @@ export class OrderEngine {
       last?.itemId === item.id &&
       last.status === "confirmed" &&
       quantity === 1 &&
+      last.size === args.size &&
+      sameModifiers(last.modifiers, modifiers) &&
       Date.now() - last.addedAt < GUARDS.repeatWindowMs;
     if (backToBack) {
       this.repeatQuestion = { itemId: item.id, name: item.name, at: Date.now() };
@@ -377,13 +397,7 @@ export class OrderEngine {
       name: item.name,
       quantity,
       size: args.size,
-      modifiers: Array.from(
-        new Set([
-          ...(args.modifiers ?? []).map((m) => canonicalModifier(item, m)).filter((m): m is string => m !== null),
-          // "a large diet coke" carries its own modifier in the item name.
-          ...modifiersInPhrase(item, args.spoken),
-        ]),
-      ),
+      modifiers,
       unitPrice: priceOf(item, args.size),
       status: sideVoice || needsQuantityCheck ? "pending" : "confirmed",
       owner: this.ownerFor(speaker, args.forWhom, args.askedBy),
@@ -602,7 +616,7 @@ export class OrderEngine {
       if (i !== -1) next.splice(i, 1);
     };
 
-    for (const raw of args.add_modifiers ?? []) {
+    for (const raw of (args.add_modifiers ?? []).flatMap(modifierParts)) {
       const m = raw.toLowerCase().trim().replace(/^without\s+/, "no ");
       if (m.startsWith("no ")) addModifier(m);
       // "add the pickles back" undoes a previous "no pickles"
@@ -610,7 +624,7 @@ export class OrderEngine {
       else addModifier(m);
     }
 
-    for (const raw of args.remove_modifiers ?? []) {
+    for (const raw of (args.remove_modifiers ?? []).flatMap(modifierParts)) {
       const m = raw.toLowerCase().trim().replace(/^without\s+/, "no ");
       if (next.includes(m)) dropModifier(m);
       // "remove pickles" on a burger that offers "no pickles" means adding that modifier

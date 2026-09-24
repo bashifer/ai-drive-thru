@@ -71,6 +71,104 @@ describe("ordinary orders", () => {
   });
 });
 
+/**
+ * The words the 156 real orders of Amazon's FoodOrdering set actually used, where the ticket
+ * came out wrong on 23 Sep: an item that vanished, or a flavour or topping that never reached
+ * the kitchen. Each case is the agent's own call from that run.
+ */
+describe("menu words the way customers say them", () => {
+  const mods = (e: OrderEngine) => [...confirmed(e)[0].modifiers].sort();
+
+  test("'two chicken sandwiches' is two sandwiches, not nothing", () => {
+    const e = new OrderEngine();
+    const out = e.addItem({ spoken: "chicken sandwiches", quantity: 2, attribution: driver() });
+    assert.equal(out.status, "ok");
+    assert.deepEqual(names(e), ["2×Crispy Chicken Sandwich"]);
+  });
+
+  test("'7-Up' is the lemon-lime soda", () => {
+    const e = new OrderEngine();
+    const out = e.addItem({ spoken: "7-Up", size: "small", attribution: driver() });
+    assert.equal(out.status, "ok");
+    assert.deepEqual(names(e), ["1×Lemon-Lime Soda"]);
+  });
+
+  test("a flavour said in the item's name reaches the kitchen", () => {
+    for (const [spoken, item, flavour] of [
+      ["chocolate shake", "Milkshake", "chocolate"],
+      ["vanilla shake", "Milkshake", "vanilla"],
+      ["chocolate milkshake", "Milkshake", "chocolate"],
+      ["sweet tea", "Iced Tea", "sweet"],
+    ]) {
+      const e = new OrderEngine();
+      e.addItem({ spoken, attribution: driver() });
+      assert.deepEqual(names(e), [`1×${item}`], spoken);
+      assert.deepEqual(mods(e), [flavour], spoken);
+    }
+  });
+
+  test("words that are the item's own name still do not count as a change", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "bacon stack", attribution: driver() });
+    e.addItem({ spoken: "diet coke", attribution: driver() });
+    const [stack, coke] = confirmed(e);
+    assert.deepEqual(stack.modifiers, [], "a Bacon Stack is not a burger with bacon added");
+    assert.deepEqual(coke.modifiers, ["diet"]);
+  });
+
+  test("'sugar-free lemonade' stays sugar-free", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "sugar-free lemonade", size: "large", attribution: driver() });
+    assert.deepEqual(names(e), ["1×Pink Lemonade"]);
+    assert.deepEqual(mods(e), ["zero sugar"]);
+  });
+
+  test("an accent does not lose a topping", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "double cheeseburger", modifiers: ["bacon", "jalapeños"], attribution: driver() });
+    assert.deepEqual(mods(e), ["bacon", "jalapenos"]);
+  });
+
+  test("toppings the model packs into one phrase are each still a topping", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "double cheeseburger", modifiers: ["plain", "just ketchup and cheddar cheese"], attribution: driver() });
+    assert.deepEqual(mods(e), ["cheddar", "ketchup"]);
+
+    const f = new OrderEngine();
+    f.addItem({ spoken: "chicken sandwich", modifiers: ["cheddar cheese", "mayonnaise only"], attribution: driver() });
+    assert.deepEqual(mods(f), ["cheddar", "mayo"]);
+  });
+
+  test("a hamburger comes without cheese unless they ask for cheese", () => {
+    const e = new OrderEngine();
+    e.addItem({ spoken: "hamburger", modifiers: ["onions"], attribution: driver() });
+    assert.deepEqual(mods(e), ["no cheese", "onions"]);
+
+    const withCheddar = new OrderEngine();
+    withCheddar.addItem({ spoken: "hamburger", modifiers: ["cheddar cheese"], attribution: driver() });
+    assert.deepEqual(mods(withCheddar), ["cheddar"], "a hamburger with cheddar is not 'no cheese, cheddar'");
+
+    for (const spoken of ["cheeseburger", "burger", "lab burger"]) {
+      const f = new OrderEngine();
+      f.addItem({ spoken, attribution: driver() });
+      assert.deepEqual(confirmed(f)[0].modifiers, [], spoken);
+    }
+  });
+
+  test("a topping said inside the item's name is a topping, not a second item to choose between", () => {
+    for (const spoken of ["double bacon cheeseburger", "double cheeseburger with bacon"]) {
+      const e = new OrderEngine();
+      const out = e.addItem({ spoken, attribution: driver() });
+      assert.equal(out.status, "ok", spoken);
+      assert.deepEqual(names(e), ["1×Double Lab Burger"], spoken);
+      assert.deepEqual(mods(e), ["bacon"], spoken);
+    }
+    const e = new OrderEngine();
+    e.addItem({ spoken: "bacon burger", attribution: driver() });
+    assert.deepEqual(names(e), ["1×Bacon Stack"]);
+  });
+});
+
 describe("corrections, the way people actually phrase them", () => {
   test("'actually, make that two' changes the line instead of adding one", () => {
     const e = new OrderEngine();
@@ -370,6 +468,16 @@ describe("guards against the failures that made the news", () => {
     const out = e.addItem({ spoken: "lab burger", quantity: 1, attribution: driver() });
     assert.equal(out.status, "needs_confirmation");
     assert.equal(confirmed(e).length, 1);
+  });
+
+  test("a different burger straight after the first is a second order, not a repeat", () => {
+    // "A cheeseburger with lettuce and tomato, and a hamburger with only pickles" is two
+    // burgers. Asking "did you want a second one?" about it loses the hamburger.
+    const e = new OrderEngine();
+    e.addItem({ spoken: "cheeseburger", modifiers: ["lettuce", "tomato"], attribution: driver() });
+    const out = e.addItem({ spoken: "hamburger", modifiers: ["pickles"], attribution: driver() });
+    assert.equal(out.status, "ok");
+    assert.equal(confirmed(e).length, 2);
   });
 
   test("a customer who does want a second one gets it", () => {

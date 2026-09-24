@@ -18,6 +18,11 @@ export type MenuItem = {
   sizes?: Size[];
   modifiers?: string[];
   daypart?: "breakfast" | "allday";
+  /**
+   * What saying this alias means for the kitchen: a "hamburger" is the burger without its
+   * cheese. `unless` lists the modifiers that say otherwise.
+   */
+  implies?: Record<string, { add: string[]; unless: string[] }>;
 };
 
 export const SIZE_UPCHARGE: Record<Size, number> = {
@@ -55,6 +60,7 @@ export const MENU: MenuItem[] = [
     price: 5.49,
     aliases: ["lab burger", "burger", "regular burger", "hamburger", "cheeseburger"],
     modifiers: SANDWICH_MODIFIERS,
+    implies: { hamburger: { add: ["no cheese"], unless: ["cheddar", "extra cheese"] } },
   },
   {
     id: "double_lab",
@@ -182,7 +188,7 @@ export const MENU: MenuItem[] = [
     name: "Lemon-Lime Soda",
     category: "drinks",
     price: 1.99,
-    aliases: ["sprite", "lemon lime", "seven up", "7up", "lemonade soda"],
+    aliases: ["sprite", "lemon lime", "seven up", "7 up", "7up", "lemonade soda"],
     sizes: ["small", "medium", "large"],
     modifiers: ["no ice"],
   },
@@ -306,6 +312,9 @@ export const TAX_RATE = 0.0825;
 
 const normalize = (s: string) =>
   s
+    // "jalapeños" is the jalapeños on the menu.
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .replace(/\s+/g, " ")
@@ -325,6 +334,12 @@ const SPANISH_HINTS: Record<string, string> = {
 };
 
 export type MenuMatch = { item: MenuItem; score: number };
+
+/** Two candidates closer than this are a real question to ask, not a coin to flip. */
+export const AMBIGUITY_MARGIN = 0.08;
+
+const clearWinner = (ms: MenuMatch[]) =>
+  ms.length > 0 && (ms.length === 1 || ms[1].score <= ms[0].score - AMBIGUITY_MARGIN);
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -390,8 +405,34 @@ export function resolveMenuItem(spoken: string, daypart: "breakfast" | "allday" 
 
   let matches = score(raw);
   if (!matches.length) matches = score(singular(raw));
+  matches.sort((a, b) => b.score - a.score);
 
-  return matches.sort((a, b) => b.score - a.score).slice(0, 3);
+  // "Double bacon cheeseburger" is a double cheeseburger with bacon on it, not a choice
+  // between a double and a cheeseburger. When the words leave it open, look again without
+  // the toppings and the words that join them; the toppings are picked up as modifiers.
+  if (!clearWinner(matches)) {
+    const bare = words(raw)
+      .filter((w) => !toppingWords().has(singularWord(w)))
+      .join(" ");
+    if (bare && bare !== raw) {
+      const again = score(bare).sort((a, b) => b.score - a.score);
+      if (clearWinner(again)) matches = again;
+    }
+  }
+  return matches.slice(0, 3);
+}
+
+let toppingWordSet: Set<string> | null = null;
+
+/** Every one-word modifier on the menu, and the words customers put between them. */
+function toppingWords(): Set<string> {
+  toppingWordSet ??= new Set([
+    ...MENU.flatMap((m) => m.modifiers ?? [])
+      .map(modifierKey)
+      .filter((k) => !k.includes(" ")),
+    ...["with", "and", "no", "extra", "plain", "only", "just", "on", "top", "topped"],
+  ]);
+  return toppingWordSet;
 }
 
 function tokenOverlap(a: string, b: string) {
@@ -414,6 +455,8 @@ function singularWord(w: string): string {
   if (IRREGULAR[w]) return IRREGULAR[w];
   if (w.endsWith("oes")) return w.slice(0, -2);
   if (w.endsWith("ies")) return `${w.slice(0, -3)}y`;
+  // "sandwiches", "dishes", "boxes", "glasses": the plural adds "es", not "s".
+  if (/(ch|sh|x|ss|zz)es$/.test(w)) return w.slice(0, -2);
   if (w.endsWith("ss")) return w;
   if (w.endsWith("s") && w.length > 3) return w.slice(0, -1);
   return w;
@@ -452,7 +495,8 @@ export function canonicalModifier(item: MenuItem, raw: string): string | null {
 
   // "cheddar cheese" is the customer saying "cheddar" with a word to spare; "extra
   // onions" is not "onions", so a negation or an intensifier must not be swallowed.
-  const spoken = new Set(key.split(" "));
+  // "Mayonnaise only" is mayo: the words keep their own aliases.
+  const spoken = new Set(key.split(" ").map((w) => modifierKey(MODIFIER_ALIASES[w] ?? w)));
   if (spoken.has("no") || spoken.has("extra")) return null;
   for (const candidate of allowed) {
     const tokens = modifierKey(candidate).split(" ");
@@ -463,25 +507,84 @@ export function canonicalModifier(item: MenuItem, raw: string): string | null {
 }
 
 /**
- * Modifiers the customer packed into the item name itself: "diet coke", "spicy chicken".
+ * One modifier string can carry several: "just ketchup and cheddar cheese", "lettuce,
+ * tomato". The model packs a whole clause into one entry often enough that reading only
+ * its first topping loses the rest of what the customer asked for.
+ */
+export function modifierParts(raw: string): string[] {
+  return raw
+    .split(/\s*(?:,|&|\band\b|\bwith\b|\bplus\b)\s*/i)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+/** Every modifier the kitchen knows in one spoken string, in the order they were said. */
+export function canonicalModifiers(item: MenuItem, raw: string): string[] {
+  const whole = canonicalModifier(item, raw);
+  const parts = modifierParts(raw)
+    .map((p) => canonicalModifier(item, p))
+    .filter((m): m is string => m !== null);
+  return parts.length > 1 || !whole ? Array.from(new Set(parts)) : [whole];
+}
+
+/**
+ * The words that name the item itself. A qualifier in a variant alias — the "chocolate" of
+ * "chocolate shake", the "sweet" of "sweet tea" — is the customer's choice, not the name:
+ * take it away and the rest is still this item, and the kitchen lists it as a modifier.
+ */
+function ownWords(item: MenuItem): Set<string> {
+  const names = new Set([item.name, ...item.aliases].map((n) => singular(normalize(n))));
+  const choices = new Set((item.modifiers ?? []).map(modifierKey).filter((k) => !k.includes(" ")));
+  const own = new Set(words(singular(normalize(item.name))));
+  for (const alias of item.aliases) {
+    const ws = words(singular(normalize(alias)));
+    for (const w of ws) {
+      const rest = ws.filter((x) => x !== w).join(" ");
+      if (!(choices.has(w) && rest && names.has(rest))) own.add(w);
+    }
+  }
+  return own;
+}
+
+/**
+ * Modifiers the customer packed into the item name itself: "diet coke", "spicy chicken",
+ * "chocolate shake", "sugar-free lemonade".
  *
  * Words belonging to the item's own name never count — a "Bacon Stack" is not a
  * burger with bacon added on top of it.
  */
 export function modifiersInPhrase(item: MenuItem, spoken: string): string[] {
-  const own = new Set(
-    [item.name, ...item.aliases]
-      .flatMap((n) => normalize(n).split(" "))
-      .map(singularWord),
-  );
-  const said = new Set(normalize(spoken).split(" ").map(singularWord));
+  const own = ownWords(item);
+  const phrase = singular(normalize(spoken));
+  const said = new Set(words(phrase));
   const found: string[] = [];
   for (const candidate of item.modifiers ?? []) {
     const key = modifierKey(candidate);
-    if (key.includes(" ") || own.has(key)) continue;
+    if (key.includes(" ")) {
+      // "no ice", "zero sugar" — as said, or as one of their spoken forms ("sugar free").
+      const forms = [key, ...Object.entries(MODIFIER_ALIASES).filter(([, to]) => to === candidate).map(([from]) => modifierKey(from))];
+      if (forms.some((f) => f.includes(" ") && containsPhrase(phrase, f))) found.push(candidate);
+      continue;
+    }
+    if (own.has(key)) continue;
     if (said.has(key)) found.push(candidate);
   }
   return found;
+}
+
+/**
+ * What an alias means for the kitchen beyond the item: "hamburger" is the burger without
+ * its cheese — unless the customer asked for cheese on it after all.
+ */
+export function impliedModifiers(item: MenuItem, spoken: string, chosen: string[]): string[] {
+  const phrase = singular(normalize(spoken));
+  const out: string[] = [];
+  for (const [alias, rule] of Object.entries(item.implies ?? {})) {
+    if (!containsPhrase(phrase, singular(normalize(alias)))) continue;
+    if (rule.unless.some((m) => chosen.includes(m))) continue;
+    out.push(...rule.add.filter((m) => !chosen.includes(m)));
+  }
+  return out;
 }
 
 /** Noises that keep a conversation going without asking for anything. */
