@@ -2,28 +2,31 @@
   "aggregate": {
     "condition": "recorded car +5 dB",
     "cases": 156,
-    "orderExactMatch": 0.647,
-    "slotAccuracy": 0.876,
+    "orderExactMatch": 0.929,
+    "slotAccuracy": 0.963,
     "falseAdds": 1,
-    "missing": 25,
-    "errors": 0
+    "missing": 6,
+    "errors": 1
   },
   "results": [
     {
       "src": "i would like a vegan burger with lettuce tomatoes and onions and a large order of sweet potato fries",
       "expected": [
-        "1×Veggie Lab",
-        "1×Sweet Potato Fries"
+        "1×Veggie Lab+lettuce+onions+tomato",
+        "1×Sweet Potato Fries/large"
       ],
-      "got": [],
-      "exactMatch": false,
-      "slotAccuracy": 0,
+      "got": [
+        "1×Veggie Lab+lettuce+onions+tomato",
+        "1×Sweet Potato Fries/large"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 2,
+      "missing": 0,
       "toolCalls": 2,
       "calls": [
-        "get_menu({\"category\":\"burgers\"}) -> ok",
-        "get_menu({\"category\":\"sides\"}) -> ok"
+        "add_item({\"item\":\"vegan burger\",\"modifiers\":[\"lettuce\",\"tomatoes\",\"onions\"]}) -> ok",
+        "add_item({\"item\":\"sweet potato fries\",\"size\":\"large\"}) -> ok"
       ]
     },
     {
@@ -46,9 +49,9 @@
     {
       "src": "i'll have a cheeseburger with lettuce large french fries and a large diet coke",
       "expected": [
-        "1×Lab Burger",
-        "1×Fries",
-        "1×Cola"
+        "1×Lab Burger+lettuce",
+        "1×Fries/large",
+        "1×Cola/large+diet"
       ],
       "got": [
         "1×Lab Burger+lettuce",
@@ -63,13 +66,13 @@
       "calls": [
         "add_item({\"item\":\"cheeseburger\",\"modifiers\":[\"lettuce\"]}) -> ok",
         "add_item({\"item\":\"french fries\",\"size\":\"large\"}) -> ok",
-        "add_item({\"item\":\"Diet Coke\",\"size\":\"large\"}) -> ok"
+        "add_item({\"item\":\"diet coke\",\"size\":\"large\"}) -> ok"
       ]
     },
     {
       "src": "i'd like a double cheeseburger with onions pickles bacon ketchup and mustard",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+bacon+ketchup+mustard+onions+pickles"
       ],
       "got": [
         "1×Double Lab Burger+bacon+ketchup+mustard+onions+pickles"
@@ -86,7 +89,7 @@
     {
       "src": "hi can i have the double cheeseburger with ketchup and onions and french fries on the side",
       "expected": [
-        "1×Double Lab Burger",
+        "1×Double Lab Burger+ketchup+onions",
         "1×Fries"
       ],
       "got": [
@@ -106,7 +109,7 @@
     {
       "src": "can i also have a medium diet coke",
       "expected": [
-        "1×Cola"
+        "1×Cola/medium+diet"
       ],
       "got": [
         "1×Cola/medium+diet"
@@ -123,17 +126,17 @@
     {
       "src": "can i have a chicken sandwich with lettuce and tomatoes a small curly fries and a small chocolate shake",
       "expected": [
-        "1×Crispy Chicken Sandwich",
-        "1×Curly Fries",
-        "1×Milkshake"
+        "1×Crispy Chicken Sandwich+lettuce+tomato",
+        "1×Curly Fries/small",
+        "1×Milkshake/small+chocolate"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+lettuce+tomato",
         "1×Curly Fries/small",
-        "1×Milkshake/small"
+        "1×Milkshake/small+chocolate"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.909,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -146,7 +149,7 @@
     {
       "src": "hi could i please have a cheeseburger with cheddar cheese onions pickles lettuce ketchup mustard and a little mayo",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+cheddar+ketchup+lettuce+mustard+onions+pickles"
       ],
       "got": [
         "1×Lab Burger+cheddar+ketchup+lettuce+mayo+mustard+onions+pickles"
@@ -163,8 +166,8 @@
     {
       "src": "i would also like a small garlic fry and a medium diet coke",
       "expected": [
-        "1×Garlic Fries",
-        "1×Cola"
+        "1×Garlic Fries/small",
+        "1×Cola/medium+diet"
       ],
       "got": [
         "1×Garlic Fries/small",
@@ -177,13 +180,13 @@
       "toolCalls": 2,
       "calls": [
         "add_item({\"item\":\"garlic fry\",\"size\":\"small\"}) -> ok",
-        "add_item({\"item\":\"Diet Coke\",\"size\":\"medium\"}) -> ok"
+        "add_item({\"item\":\"diet coke\",\"size\":\"medium\"}) -> ok"
       ]
     },
     {
       "src": "today i'd like to try your double cheese burger plain with just ketchup and cheddar cheese on it",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+cheddar+ketchup"
       ],
       "got": [
         "1×Double Lab Burger+cheddar+ketchup"
@@ -194,14 +197,14 @@
       "missing": 0,
       "toolCalls": 1,
       "calls": [
-        "add_item({\"item\":\"double cheeseburger\",\"modifiers\":[\"plain\",\"ketchup\",\"cheddar cheese\"]}) -> ok"
+        "add_item({\"item\":\"double cheeseburger\",\"modifiers\":[\"plain\",\"just ketchup\",\"cheddar cheese\"]}) -> ok"
       ]
     },
     {
       "src": "to drink i'd like a root beer and for my side i want a large curly fries",
       "expected": [
         "1×Root Beer",
-        "1×Curly Fries"
+        "1×Curly Fries/large"
       ],
       "got": [
         "1×Root Beer",
@@ -220,19 +223,19 @@
     {
       "src": "we also need a small fry a side of apple slices a medium diet coke and a small chocolate shake",
       "expected": [
-        "1×Fries",
+        "1×Fries/small",
         "1×Apple Slices",
-        "1×Cola",
-        "1×Milkshake"
+        "1×Cola/medium+diet",
+        "1×Milkshake/small+chocolate"
       ],
       "got": [
         "1×Fries/small",
         "1×Apple Slices",
         "1×Cola/medium+diet",
-        "1×Milkshake/small"
+        "1×Milkshake/small+chocolate"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.923,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 4,
@@ -246,34 +249,31 @@
     {
       "src": "i would like two cheeseburgers with lettuce pickles and mustard",
       "expected": [
-        "2×Lab Burger"
-      ],
-      "got": [
         "2×Lab Burger+lettuce+mustard+pickles"
       ],
-      "exactMatch": true,
-      "slotAccuracy": 1,
+      "got": [],
+      "exactMatch": false,
+      "slotAccuracy": 0,
       "falseAdds": 0,
-      "missing": 0,
-      "toolCalls": 1,
-      "calls": [
-        "add_item({\"item\":\"cheeseburgers\",\"modifiers\":[\"lettuce\",\"pickles\",\"mustard\"],\"quantity\":2}) -> ok"
-      ]
+      "missing": 1,
+      "toolCalls": 0,
+      "calls": [],
+      "error": "at_capacity: We are currently at capacity, please try again later"
     },
     {
       "src": "i would also like a large sugar free lemonade a small root beer and and two orders of fries",
       "expected": [
-        "1×Pink Lemonade",
-        "1×Root Beer",
-        "2×Fries"
-      ],
-      "got": [
-        "1×Pink Lemonade/large",
+        "1×Pink Lemonade/large+zero sugar",
         "1×Root Beer/small",
         "2×Fries"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.889,
+      "got": [
+        "1×Pink Lemonade/large+zero sugar",
+        "1×Root Beer/small",
+        "2×Fries"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -286,7 +286,7 @@
     {
       "src": "hi i want a vegan burger with extra onions lettuce pickles and mustard",
       "expected": [
-        "1×Veggie Lab"
+        "1×Veggie Lab+lettuce+mustard+pickles"
       ],
       "got": [],
       "exactMatch": false,
@@ -302,23 +302,26 @@
       "src": "i'd also like a side of baby carrots and a sugar free lemonade please",
       "expected": [
         "1×Baby Carrots",
-        "1×Pink Lemonade"
+        "1×Pink Lemonade+zero sugar"
       ],
-      "got": [],
-      "exactMatch": false,
-      "slotAccuracy": 0,
+      "got": [
+        "1×Baby Carrots",
+        "1×Pink Lemonade+zero sugar"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 2,
+      "missing": 0,
       "toolCalls": 2,
       "calls": [
-        "get_menu({\"category\":\"sides\"}) -> ok",
-        "get_menu({\"category\":\"drinks\"}) -> ok"
+        "add_item({\"item\":\"baby carrots\"}) -> ok",
+        "add_item({\"item\":\"sugar-free lemonade\"}) -> ok"
       ]
     },
     {
       "src": "can i get a double cheese burger with onions cheddar cheese lettuce pickles bacon tomatoes and mustard",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+bacon+cheddar+lettuce+mustard+onions+pickles+tomato"
       ],
       "got": [
         "1×Double Lab Burger+bacon+cheddar+lettuce+mustard+onions+pickles+tomato"
@@ -335,7 +338,7 @@
     {
       "src": "a large side of fries with a coke",
       "expected": [
-        "1×Fries",
+        "1×Fries/large",
         "1×Cola"
       ],
       "got": [
@@ -357,19 +360,20 @@
       "expected": [
         "2×Crispy Chicken Sandwich",
         "1×Iced Tea",
-        "1×Curly Fries"
+        "1×Curly Fries/small"
       ],
       "got": [
+        "2×Crispy Chicken Sandwich",
         "2×Iced Tea",
         "1×Curly Fries/small"
       ],
       "exactMatch": false,
-      "slotAccuracy": 0.571,
+      "slotAccuracy": 0.857,
       "falseAdds": 0,
-      "missing": 1,
+      "missing": 0,
       "toolCalls": 3,
       "calls": [
-        "add_item({\"item\":\"chicken sandwiches\",\"modifiers\":[\"plain\"],\"quantity\":2}) -> not_found",
+        "add_item({\"item\":\"chicken sandwiches\",\"modifiers\":[\"plain\"],\"quantity\":2}) -> ok",
         "add_item({\"item\":\"iced tea\",\"quantity\":2}) -> ok",
         "add_item({\"item\":\"curly fries\",\"size\":\"small\"}) -> ok"
       ]
@@ -377,17 +381,17 @@
     {
       "src": "hi i'd like a double cheeseburger with bacon and jalapenos a medium dr pepper and a small order of sweet potato fries",
       "expected": [
-        "1×Double Lab Burger",
-        "1×Dr Pepper",
-        "1×Sweet Potato Fries"
-      ],
-      "got": [
-        "1×Double Lab Burger+bacon",
+        "1×Double Lab Burger+bacon+jalapenos",
         "1×Dr Pepper/medium",
         "1×Sweet Potato Fries/small"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.9,
+      "got": [
+        "1×Double Lab Burger+bacon+jalapenos",
+        "1×Dr Pepper/medium",
+        "1×Sweet Potato Fries/small"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -400,13 +404,13 @@
     {
       "src": "i want two chicken sandwich with bacon lettuce tomatoes onions jalapenos and mustard and mayo",
       "expected": [
-        "2×Crispy Chicken Sandwich"
+        "2×Crispy Chicken Sandwich+bacon+jalapenos+lettuce+mayo+mustard+onions+tomato"
       ],
       "got": [
-        "2×Crispy Chicken Sandwich+bacon+lettuce+mayo+mustard+onions+tomato"
+        "2×Crispy Chicken Sandwich+bacon+jalapenos+lettuce+mayo+mustard+onions+tomato"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.889,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 1,
@@ -417,8 +421,8 @@
     {
       "src": "to drink i want a large pink lemonade as well as a side order of large garlic fries",
       "expected": [
-        "1×Pink Lemonade",
-        "1×Garlic Fries"
+        "1×Pink Lemonade/large",
+        "1×Garlic Fries/large"
       ],
       "got": [
         "1×Pink Lemonade/large",
@@ -437,13 +441,13 @@
     {
       "src": "can i get a double cheeseburger with bacon jalapenos lettuce onions mayo and mustard",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+bacon+jalapenos+lettuce+mayo+mustard+onions"
       ],
       "got": [
-        "1×Double Lab Burger+bacon+lettuce+mayo+mustard+onions"
+        "1×Double Lab Burger+bacon+jalapenos+lettuce+mayo+mustard+onions"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.875,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 1,
@@ -454,13 +458,13 @@
     {
       "src": "also a large vanilla shake",
       "expected": [
-        "1×Milkshake"
+        "1×Milkshake/large+vanilla"
       ],
       "got": [
-        "1×Milkshake/large"
+        "1×Milkshake/large+vanilla"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.75,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 1,
@@ -471,7 +475,7 @@
     {
       "src": "i'll have a double cheeseburger with cheddar cheese onions bacon lettuce mustard and ketchup",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+bacon+cheddar+ketchup+lettuce+mustard+onions"
       ],
       "got": [
         "1×Double Lab Burger+bacon+cheddar+ketchup+lettuce+mustard+onions"
@@ -488,27 +492,29 @@
     {
       "src": "also a large fry and a medium coke",
       "expected": [
-        "1×Fries",
-        "1×Cola"
+        "1×Fries/large",
+        "1×Cola/medium"
       ],
       "got": [
-        "1×Fries/large"
+        "1×Fries/large",
+        "1×Cola/medium"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.5,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 1,
-      "toolCalls": 1,
+      "missing": 0,
+      "toolCalls": 2,
       "calls": [
-        "add_item({\"item\":\"fry\",\"size\":\"large\"}) -> ok"
+        "add_item({\"item\":\"fry\",\"size\":\"large\"}) -> ok",
+        "add_item({\"item\":\"coke\",\"size\":\"medium\"}) -> ok"
       ]
     },
     {
       "src": "i would like to order a chicken sandwich with lettuce tomatoes mayonnaise and a medium pink lemonade large curly fries on the side",
       "expected": [
-        "1×Crispy Chicken Sandwich",
-        "1×Pink Lemonade",
-        "1×Curly Fries"
+        "1×Crispy Chicken Sandwich+lettuce+mayo+tomato",
+        "1×Pink Lemonade/medium",
+        "1×Curly Fries/large"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+lettuce+mayo+tomato",
@@ -529,19 +535,19 @@
     {
       "src": "i'll have a cheeseburger with ketchup mustard onions and pickles a large order of garlic fries a small chocolate shake and i need a large dr pepper",
       "expected": [
-        "1×Lab Burger",
-        "1×Garlic Fries",
-        "1×Milkshake",
-        "1×Dr Pepper"
+        "1×Lab Burger+ketchup+mustard+onions+pickles",
+        "1×Garlic Fries/large",
+        "1×Milkshake/small+chocolate",
+        "1×Dr Pepper/large"
       ],
       "got": [
         "1×Lab Burger+ketchup+mustard+onions+pickles",
         "1×Garlic Fries/large",
-        "1×Milkshake/small",
+        "1×Milkshake/small+chocolate",
         "1×Dr Pepper/large"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.938,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 4,
@@ -555,21 +561,22 @@
     {
       "src": "double bacon cheeseburger with mustard and lettuce large curly fry and a milk",
       "expected": [
-        "1×Double Lab Burger",
-        "1×Fries",
+        "1×Double Lab Burger+bacon+lettuce+mustard",
+        "1×Fries/large",
         "1×Milk"
       ],
       "got": [
+        "1×Double Lab Burger+bacon+lettuce+mustard",
         "1×Curly Fries/large",
         "1×Milk"
       ],
       "exactMatch": false,
-      "slotAccuracy": 0.2,
+      "slotAccuracy": 0.7,
       "falseAdds": 1,
-      "missing": 2,
+      "missing": 1,
       "toolCalls": 3,
       "calls": [
-        "add_item({\"item\":\"double bacon cheeseburger\",\"modifiers\":[\"mustard\",\"lettuce\"]}) -> ambiguous",
+        "add_item({\"item\":\"Double bacon cheeseburger\",\"modifiers\":[\"mustard\",\"lettuce\"]}) -> ok",
         "add_item({\"item\":\"curly fry\",\"size\":\"large\"}) -> ok",
         "add_item({\"item\":\"milk\"}) -> ok"
       ]
@@ -577,7 +584,7 @@
     {
       "src": "i'll have a cheeseburger with lettuce onions pickles tomatoes bacon ketchup mustard and mayo",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+bacon+ketchup+lettuce+mayo+mustard+onions+pickles+tomato"
       ],
       "got": [
         "1×Lab Burger+bacon+ketchup+lettuce+mayo+mustard+onions+pickles+tomato"
@@ -594,8 +601,8 @@
     {
       "src": "give me a medium coke and a large side of french fries",
       "expected": [
-        "1×Cola",
-        "1×Fries"
+        "1×Cola/medium",
+        "1×Fries/large"
       ],
       "got": [
         "1×Cola/medium",
@@ -614,7 +621,7 @@
     {
       "src": "hi i'd like a cheeseburger with mustard and ketchup no mayo",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+ketchup+mustard+no mayo"
       ],
       "got": [
         "1×Lab Burger+ketchup+mustard+no mayo"
@@ -631,8 +638,8 @@
     {
       "src": "i'd also like a side of large fries and a medium coke",
       "expected": [
-        "1×Fries",
-        "1×Cola"
+        "1×Fries/large",
+        "1×Cola/medium"
       ],
       "got": [
         "1×Fries/large",
@@ -651,17 +658,17 @@
     {
       "src": "i'll have a hamburger topped with bacon and ketchup along with a large coke and large order of french fries",
       "expected": [
-        "1×Lab Burger",
-        "1×Cola",
-        "1×Fries"
-      ],
-      "got": [
-        "1×Lab Burger+bacon+ketchup",
+        "1×Lab Burger+bacon+ketchup+no cheese",
         "1×Cola/large",
         "1×Fries/large"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.909,
+      "got": [
+        "1×Lab Burger+bacon+ketchup+no cheese",
+        "1×Cola/large",
+        "1×Fries/large"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -674,7 +681,7 @@
     {
       "src": "i'll have a chicken sandwich can you put lettuce and onions on that",
       "expected": [
-        "1×Crispy Chicken Sandwich"
+        "1×Crispy Chicken Sandwich+lettuce+onions"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+lettuce+onions"
@@ -691,8 +698,8 @@
     {
       "src": "also a large order of curly fries and a large root beer",
       "expected": [
-        "1×Curly Fries",
-        "1×Root Beer"
+        "1×Curly Fries/large",
+        "1×Root Beer/large"
       ],
       "got": [
         "1×Curly Fries/large",
@@ -704,16 +711,16 @@
       "missing": 0,
       "toolCalls": 2,
       "calls": [
-        "add_item({\"item\":\"curly fries\",\"size\":\"large\"}) -> ok",
-        "add_item({\"item\":\"root beer\",\"size\":\"large\"}) -> ok"
+        "add_item({\"item\":\"curly fries\",\"quantity\":1,\"size\":\"large\"}) -> ok",
+        "add_item({\"item\":\"root beer\",\"quantity\":1,\"size\":\"large\"}) -> ok"
       ]
     },
     {
       "src": "hi can i get a double cheeseburger with bacon ketchup and mayonnaise a large diet coke and a large curly fries",
       "expected": [
-        "1×Double Lab Burger",
-        "1×Cola",
-        "1×Curly Fries"
+        "1×Double Lab Burger+bacon+ketchup+mayo",
+        "1×Cola/large+diet",
+        "1×Curly Fries/large"
       ],
       "got": [
         "1×Double Lab Burger+bacon+ketchup+mayo",
@@ -734,8 +741,8 @@
     {
       "src": "i'll take a cheeseburger with onions and pickles and ketchup and one large coke please",
       "expected": [
-        "1×Lab Burger",
-        "1×Cola"
+        "1×Lab Burger+ketchup+onions+pickles",
+        "1×Cola/large"
       ],
       "got": [
         "1×Lab Burger+ketchup+onions+pickles",
@@ -754,17 +761,17 @@
     {
       "src": "can i get a cheeseburger with mayo and pickle only a small fry and chocolate shake please",
       "expected": [
-        "1×Lab Burger",
-        "1×Fries",
-        "1×Milkshake"
+        "1×Lab Burger+mayo+pickles",
+        "1×Fries/small",
+        "1×Milkshake+chocolate"
       ],
       "got": [
         "1×Lab Burger+mayo+pickles",
-        "1×Milkshake",
+        "1×Milkshake+chocolate",
         "1×Fries/small"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.9,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -777,17 +784,17 @@
     {
       "src": "i'd like a double cheeseburger with onions and mustard large garlic fries and a strawberry shake",
       "expected": [
-        "1×Double Lab Burger",
-        "1×Garlic Fries",
-        "1×Milkshake"
+        "1×Double Lab Burger+mustard+onions",
+        "1×Garlic Fries/large",
+        "1×Milkshake+strawberry"
       ],
       "got": [
         "1×Double Lab Burger+mustard+onions",
         "1×Garlic Fries/large",
-        "1×Milkshake"
+        "1×Milkshake+strawberry"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.9,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -800,7 +807,7 @@
     {
       "src": "i would like a chicken sandwich with lettuce mayo and tomatoes",
       "expected": [
-        "1×Crispy Chicken Sandwich"
+        "1×Crispy Chicken Sandwich+lettuce+mayo+tomato"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+lettuce+mayo+tomato"
@@ -817,22 +824,24 @@
     {
       "src": "i would also like a small seven up",
       "expected": [
-        "1×Lemon-Lime Soda"
+        "1×Lemon-Lime Soda/small"
       ],
-      "got": [],
-      "exactMatch": false,
-      "slotAccuracy": 0,
+      "got": [
+        "1×Lemon-Lime Soda/small"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 1,
+      "missing": 0,
       "toolCalls": 1,
       "calls": [
-        "add_item({\"item\":\"7-Up\",\"size\":\"small\"}) -> not_found"
+        "add_item({\"item\":\"7-Up\",\"size\":\"small\"}) -> ok"
       ]
     },
     {
       "src": "add a large order of curly fries too",
       "expected": [
-        "1×Curly Fries"
+        "1×Curly Fries/large"
       ],
       "got": [
         "1×Curly Fries/large"
@@ -849,10 +858,10 @@
     {
       "src": "can i have two cheeseburgers onions only a chicken sandwich two large french fries and two medium pink lemonades",
       "expected": [
-        "2×Lab Burger",
+        "2×Lab Burger+onions",
         "1×Crispy Chicken Sandwich",
-        "2×Fries",
-        "2×Pink Lemonade"
+        "2×Fries/large",
+        "2×Pink Lemonade/medium"
       ],
       "got": [
         "2×Lab Burger+onions",
@@ -876,8 +885,8 @@
       "src": "can i have a chicken sandwich with a side of large curly fries and a medium pink lemonade",
       "expected": [
         "1×Crispy Chicken Sandwich",
-        "1×Curly Fries",
-        "1×Pink Lemonade"
+        "1×Curly Fries/large",
+        "1×Pink Lemonade/medium"
       ],
       "got": [
         "1×Crispy Chicken Sandwich",
@@ -898,9 +907,9 @@
     {
       "src": "could i get a cheeseburger with cheddar cheese lettuce tomato pickles and ketchup and a side of small fries and a medium coke",
       "expected": [
-        "1×Lab Burger",
-        "1×Fries",
-        "1×Cola"
+        "1×Lab Burger+cheddar+ketchup+lettuce+pickles+tomato",
+        "1×Fries/small",
+        "1×Cola/medium"
       ],
       "got": [
         "1×Lab Burger+cheddar+ketchup+lettuce+pickles+tomato",
@@ -921,7 +930,7 @@
     {
       "src": "for my main dish i'll have a chicken sandwich with lettuce ketchup and mayo",
       "expected": [
-        "1×Crispy Chicken Sandwich"
+        "1×Crispy Chicken Sandwich+ketchup+lettuce+mayo"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+ketchup+lettuce+mayo"
@@ -951,29 +960,37 @@
       "missing": 0,
       "toolCalls": 2,
       "calls": [
-        "add_item({\"item\":\"fries\"}) -> ok",
-        "add_item({\"for_whom\":\"me\",\"item\":\"Coke\"}) -> ok"
+        "add_item({\"item\":\"fries\",\"quantity\":1}) -> ok",
+        "add_item({\"for_whom\":\"me\",\"item\":\"Coke\",\"quantity\":1}) -> ok"
       ]
     },
     {
       "src": "i'd like a cheeseburger with mayonnaise lettuce and tomato small fries and a medium dr pepper",
       "expected": [
-        "1×Lab Burger",
-        "1×Fries",
-        "1×Dr Pepper"
+        "1×Lab Burger+lettuce+mayo+tomato",
+        "1×Fries/small",
+        "1×Dr Pepper/medium"
       ],
-      "got": [],
-      "exactMatch": false,
-      "slotAccuracy": 0,
+      "got": [
+        "1×Lab Burger+lettuce+mayo+tomato",
+        "1×Fries/small",
+        "1×Dr Pepper/medium"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 3,
-      "toolCalls": 0,
-      "calls": []
+      "missing": 0,
+      "toolCalls": 3,
+      "calls": [
+        "add_item({\"item\":\"cheeseburger\",\"modifiers\":[\"mayonnaise\",\"lettuce\",\"tomato\"]}) -> ok",
+        "add_item({\"item\":\"fries\",\"size\":\"small\"}) -> ok",
+        "add_item({\"item\":\"Dr Pepper\",\"size\":\"medium\"}) -> ok"
+      ]
     },
     {
       "src": "vegan burger topping tomato mustard lettuce pickle",
       "expected": [
-        "1×Veggie Lab"
+        "1×Veggie Lab+lettuce+mustard+pickles+tomato"
       ],
       "got": [],
       "exactMatch": false,
@@ -988,7 +1005,7 @@
     {
       "src": "side curly fries small",
       "expected": [
-        "1×Curly Fries"
+        "1×Curly Fries/small"
       ],
       "got": [
         "1×Curly Fries/small"
@@ -1012,36 +1029,38 @@
       "slotAccuracy": 0,
       "falseAdds": 0,
       "missing": 1,
-      "toolCalls": 0,
-      "calls": []
+      "toolCalls": 1,
+      "calls": [
+        "get_menu({\"category\":\"drinks\"}) -> ok"
+      ]
     },
     {
       "src": "can i get a plain chicken sandwich small curly fries and a medium dr pepper",
       "expected": [
         "1×Crispy Chicken Sandwich",
-        "1×Curly Fries",
-        "1×Dr Pepper"
+        "1×Curly Fries/small",
+        "1×Dr Pepper/medium"
       ],
       "got": [
         "1×Crispy Chicken Sandwich",
-        "1×Curly Fries",
-        "1×Dr Pepper"
+        "1×Curly Fries/small",
+        "1×Dr Pepper/medium"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.75,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
       "calls": [
-        "add_item({\"item\":\"plain chicken sandwich\"}) -> ok",
-        "add_item({\"item\":\"small curly fries\"}) -> ok",
-        "add_item({\"item\":\"medium Dr Pepper\"}) -> ok"
+        "add_item({\"item\":\"plain chicken sandwich\",\"modifiers\":[\"plain\"]}) -> ok",
+        "add_item({\"item\":\"curly fries\",\"size\":\"small\"}) -> ok",
+        "add_item({\"item\":\"Dr Pepper\",\"size\":\"medium\"}) -> ok"
       ]
     },
     {
       "src": "let me have a cheeseburger with lettuce tomatoes onions pickles ketchup and mustard",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+ketchup+lettuce+mustard+onions+pickles+tomato"
       ],
       "got": [
         "1×Lab Burger+ketchup+lettuce+mustard+onions+pickles+tomato"
@@ -1058,12 +1077,12 @@
     {
       "src": "also let me have a large curly fry with a large sweet tea",
       "expected": [
-        "1×Curly Fries",
-        "1×Iced Tea"
+        "1×Curly Fries/large",
+        "1×Iced Tea/large"
       ],
       "got": [
         "1×Curly Fries/large",
-        "1×Iced Tea/large"
+        "1×Iced Tea/large+sweet"
       ],
       "exactMatch": true,
       "slotAccuracy": 1,
@@ -1078,7 +1097,7 @@
     {
       "src": "let me get a double cheeseburger with blue cheese lettuce and mustard",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+blue cheese+lettuce+mustard"
       ],
       "got": [
         "1×Double Lab Burger+blue cheese+lettuce+mustard"
@@ -1095,7 +1114,7 @@
     {
       "src": "no drinks for me today but i'll take a small order of french fries",
       "expected": [
-        "1×Fries"
+        "1×Fries/small"
       ],
       "got": [
         "1×Fries/small"
@@ -1129,8 +1148,8 @@
     {
       "src": "i'd also like to get an order of large curly fries and a large pink lemonade with that",
       "expected": [
-        "1×Curly Fries",
-        "1×Pink Lemonade"
+        "1×Curly Fries/large",
+        "1×Pink Lemonade/large"
       ],
       "got": [
         "1×Curly Fries/large",
@@ -1149,13 +1168,13 @@
     {
       "src": "for the burger i want mustard and mayo lettuce tomatoes onions bacon jalapenos",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+bacon+jalapenos+lettuce+mayo+mustard+no cheese+onions+tomato"
       ],
       "got": [
-        "1×Lab Burger+bacon+lettuce+mayo+mustard+onions+tomato"
+        "1×Lab Burger+bacon+jalapenos+lettuce+mayo+mustard+onions+tomato"
       ],
       "exactMatch": false,
-      "slotAccuracy": 0.8,
+      "slotAccuracy": 0.9,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 1,
@@ -1166,7 +1185,7 @@
     {
       "src": "i would like a double cheeseburger with lettuce ketchup onions and bacon",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+bacon+ketchup+lettuce+onions"
       ],
       "got": [
         "1×Double Lab Burger+bacon+ketchup+lettuce+onions"
@@ -1183,8 +1202,8 @@
     {
       "src": "i would also like a small curly fries and a medium diet coke",
       "expected": [
-        "1×Curly Fries",
-        "1×Cola"
+        "1×Curly Fries/small",
+        "1×Cola/medium+diet"
       ],
       "got": [
         "1×Curly Fries/small",
@@ -1203,7 +1222,7 @@
     {
       "src": "i'd like a chicken sandwich with pickles tomatoes lettuce and mayo",
       "expected": [
-        "1×Crispy Chicken Sandwich"
+        "1×Crispy Chicken Sandwich+lettuce+mayo+pickles+tomato"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+lettuce+mayo+pickles+tomato"
@@ -1220,28 +1239,29 @@
     {
       "src": "with small garlic fries and a small seven up",
       "expected": [
-        "1×Garlic Fries",
-        "1×Lemon-Lime Soda"
+        "1×Garlic Fries/small",
+        "1×Lemon-Lime Soda/small"
       ],
       "got": [
-        "1×Garlic Fries/small"
+        "1×Garlic Fries/small",
+        "1×Lemon-Lime Soda/small"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.5,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 1,
+      "missing": 0,
       "toolCalls": 2,
       "calls": [
         "add_item({\"item\":\"garlic fries\",\"size\":\"small\"}) -> ok",
-        "add_item({\"item\":\"7-Up\",\"size\":\"small\"}) -> not_found"
+        "add_item({\"item\":\"7-Up\",\"size\":\"small\"}) -> ok"
       ]
     },
     {
       "src": "can i have a cheeseburger with ketchup and onions small fries and a small diet coke",
       "expected": [
-        "1×Lab Burger",
-        "1×Fries",
-        "1×Cola"
+        "1×Lab Burger+ketchup+onions",
+        "1×Fries/small",
+        "1×Cola/small+diet"
       ],
       "got": [
         "1×Lab Burger+ketchup+onions",
@@ -1262,7 +1282,7 @@
     {
       "src": "hey i would like a double cheeseburger with onions ketchup mayo and bacon",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+bacon+ketchup+mayo+onions"
       ],
       "got": [
         "1×Double Lab Burger+bacon+ketchup+mayo+onions"
@@ -1280,7 +1300,7 @@
       "src": "also french fries and a large diet coke",
       "expected": [
         "1×Fries",
-        "1×Cola"
+        "1×Cola/large+diet"
       ],
       "got": [
         "1×Fries",
@@ -1299,7 +1319,7 @@
     {
       "src": "i need four cheeseburgers with lettuce and tomato",
       "expected": [
-        "4×Lab Burger"
+        "4×Lab Burger+lettuce+tomato"
       ],
       "got": [
         "4×Lab Burger+lettuce+tomato"
@@ -1310,21 +1330,21 @@
       "missing": 0,
       "toolCalls": 1,
       "calls": [
-        "add_item({\"item\":\"cheeseburgers\",\"modifiers\":[\"lettuce\",\"tomato\"],\"quantity\":4}) -> ok"
+        "add_item({\"item\":\"cheeseburger\",\"modifiers\":[\"lettuce\",\"tomato\"],\"quantity\":4}) -> ok"
       ]
     },
     {
       "src": "one hamburger plain just the meat and bun and five orders of fries",
       "expected": [
-        "1×Lab Burger",
+        "1×Lab Burger+no cheese",
         "5×Fries"
       ],
       "got": [
-        "1×Lab Burger",
+        "1×Lab Burger+no cheese",
         "5×Fries"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.8,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 2,
@@ -1336,8 +1356,8 @@
     {
       "src": "i also need three small cokes and two small coffees thank you",
       "expected": [
-        "3×Cola",
-        "2×Coffee"
+        "3×Cola/small",
+        "2×Coffee/small"
       ],
       "got": [
         "3×Cola/small",
@@ -1356,13 +1376,13 @@
     {
       "src": "can i get a hamburger with onions",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+no cheese+onions"
       ],
       "got": [
-        "1×Lab Burger+onions"
+        "1×Lab Burger+no cheese+onions"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.75,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 1,
@@ -1373,7 +1393,7 @@
     {
       "src": "and a small order of french fries",
       "expected": [
-        "1×Fries"
+        "1×Fries/small"
       ],
       "got": [
         "1×Fries/small"
@@ -1384,13 +1404,13 @@
       "missing": 0,
       "toolCalls": 1,
       "calls": [
-        "add_item({\"item\":\"french fries\",\"size\":\"small\"}) -> ok"
+        "add_item({\"item\":\"French fries\",\"size\":\"small\"}) -> ok"
       ]
     },
     {
       "src": "give me a bacon cheeseburger with mustard ketchup and extra onions",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+bacon+ketchup+mustard"
       ],
       "got": [
         "1×Lab Burger+bacon+ketchup+mustard"
@@ -1407,28 +1427,29 @@
     {
       "src": "then i'll take an order of large curly fries and one large seven up",
       "expected": [
-        "1×Curly Fries",
-        "1×Lemon-Lime Soda"
+        "1×Curly Fries/large",
+        "1×Lemon-Lime Soda/large"
       ],
       "got": [
-        "1×Curly Fries/large"
+        "1×Curly Fries/large",
+        "1×Lemon-Lime Soda/large"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.5,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 1,
+      "missing": 0,
       "toolCalls": 2,
       "calls": [
         "add_item({\"item\":\"curly fries\",\"size\":\"large\"}) -> ok",
-        "add_item({\"item\":\"7-Up\",\"size\":\"large\"}) -> not_found"
+        "add_item({\"item\":\"7-Up\",\"size\":\"large\"}) -> ok"
       ]
     },
     {
       "src": "hi i want two hamburgers cheddar cheese lettuce tomatoes ketchup onions pickles and mustard on them two french fries and two medium cokes please",
       "expected": [
-        "2×Lab Burger",
+        "2×Lab Burger+cheddar+ketchup+lettuce+mustard+no cheese+onions+pickles+tomato",
         "2×Fries",
-        "2×Cola"
+        "2×Cola/medium"
       ],
       "got": [
         "2×Lab Burger+cheddar+ketchup+lettuce+mustard+onions+pickles+tomato",
@@ -1449,17 +1470,17 @@
     {
       "src": "i just want a vegan burger topped with jalapenos onions and mustard a side of apple slices and a small sugar free lemonade",
       "expected": [
-        "1×Veggie Lab",
+        "1×Veggie Lab+jalapenos+mustard+onions",
         "1×Apple Slices",
-        "1×Pink Lemonade"
+        "1×Pink Lemonade/small+zero sugar"
       ],
       "got": [
-        "1×Veggie Lab+mustard+onions",
+        "1×Veggie Lab+jalapenos+mustard+onions",
         "1×Apple Slices",
-        "1×Pink Lemonade/small"
+        "1×Pink Lemonade/small+zero sugar"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.818,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -1472,9 +1493,9 @@
     {
       "src": "i'd like a double cheeseburger with ketchup and mayo a small curly fry and a large coke please",
       "expected": [
-        "1×Double Lab Burger",
-        "1×Curly Fries",
-        "1×Cola"
+        "1×Double Lab Burger+ketchup+mayo",
+        "1×Curly Fries/small",
+        "1×Cola/large"
       ],
       "got": [
         "1×Double Lab Burger+ketchup+mayo",
@@ -1495,7 +1516,7 @@
     {
       "src": "can i get a vegan burger with cheddar cheese pickles lettuce tomatoes ketchup mustard and mayonnaise",
       "expected": [
-        "1×Veggie Lab"
+        "1×Veggie Lab+cheddar+ketchup+lettuce+mayo+mustard+pickles+tomato"
       ],
       "got": [],
       "exactMatch": false,
@@ -1510,8 +1531,8 @@
     {
       "src": "i would also like a large diet coke and a small order of french fries",
       "expected": [
-        "1×Cola",
-        "1×Fries"
+        "1×Cola/large+diet",
+        "1×Fries/small"
       ],
       "got": [
         "1×Cola/large+diet",
@@ -1524,13 +1545,13 @@
       "toolCalls": 2,
       "calls": [
         "add_item({\"item\":\"Diet Coke\",\"size\":\"large\"}) -> ok",
-        "add_item({\"item\":\"french fries\",\"size\":\"small\"}) -> ok"
+        "add_item({\"item\":\"French fries\",\"size\":\"small\"}) -> ok"
       ]
     },
     {
       "src": "double cheeseburger onions bacon and lettuce",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+bacon+lettuce+onions"
       ],
       "got": [
         "1×Double Lab Burger+bacon+lettuce+onions"
@@ -1547,8 +1568,8 @@
     {
       "src": "large curly fries and a diet coke",
       "expected": [
-        "1×Curly Fries",
-        "1×Cola"
+        "1×Curly Fries/large",
+        "1×Cola+diet"
       ],
       "got": [
         "1×Curly Fries/large",
@@ -1567,18 +1588,18 @@
     {
       "src": "i would like a chicken sandwich with cheddar cheese tomatoes lettuce and mayonnaise only",
       "expected": [
-        "1×Crispy Chicken Sandwich"
+        "1×Crispy Chicken Sandwich+cheddar+lettuce+mayo+tomato"
       ],
       "got": [
-        "1×Crispy Chicken Sandwich+cheddar+lettuce+tomato"
+        "1×Crispy Chicken Sandwich+cheddar+lettuce+mayo+tomato"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.833,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 1,
       "calls": [
-        "add_item({\"item\":\"chicken sandwich\",\"modifiers\":[\"cheddar cheese\",\"tomatoes\",\"lettuce\",\"mayonnaise only\"]}) -> ok"
+        "add_item({\"item\":\"chicken sandwich\",\"modifiers\":[\"cheddar cheese\",\"tomatoes\",\"lettuce\",\"mayonnaise\"]}) -> ok"
       ]
     },
     {
@@ -1588,8 +1609,8 @@
         "1×Iced Tea"
       ],
       "got": [
-        "1×Sweet Potato Fries/regular",
-        "1×Iced Tea/regular"
+        "1×Sweet Potato Fries",
+        "1×Iced Tea"
       ],
       "exactMatch": true,
       "slotAccuracy": 1,
@@ -1597,24 +1618,24 @@
       "missing": 0,
       "toolCalls": 2,
       "calls": [
-        "add_item({\"item\":\"sweet potato fries\",\"size\":\"regular\"}) -> ok",
-        "add_item({\"item\":\"iced tea\",\"size\":\"regular\"}) -> ok"
+        "add_item({\"item\":\"regular sweet potato fries\"}) -> ok",
+        "add_item({\"item\":\"regular iced tea\"}) -> ok"
       ]
     },
     {
       "src": "chicken sandwich with lettuce and bacon large french fry and a small chocolate shake",
       "expected": [
-        "1×Crispy Chicken Sandwich",
-        "1×Fries",
-        "1×Milkshake"
+        "1×Crispy Chicken Sandwich+bacon+lettuce",
+        "1×Fries/large",
+        "1×Milkshake/small+chocolate"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+bacon+lettuce",
         "1×Fries/large",
-        "1×Milkshake/small"
+        "1×Milkshake/small+chocolate"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.909,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -1627,13 +1648,13 @@
     {
       "src": "i'd like a double cheeseburger with jalapenos onions and pickles",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+jalapenos+onions+pickles"
       ],
       "got": [
-        "1×Double Lab Burger+onions+pickles"
+        "1×Double Lab Burger+jalapenos+onions+pickles"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.8,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 1,
@@ -1644,8 +1665,8 @@
     {
       "src": "can i also please have a small dr pepper and a side of small sweet potato fries",
       "expected": [
-        "1×Dr Pepper",
-        "1×Sweet Potato Fries"
+        "1×Dr Pepper/small",
+        "1×Sweet Potato Fries/small"
       ],
       "got": [
         "1×Dr Pepper/small",
@@ -1664,39 +1685,40 @@
     {
       "src": "can you get me a hamburger with pickles and mayo only a small order of fries and a small seven up please",
       "expected": [
-        "1×Lab Burger",
-        "1×Fries",
-        "1×Lemon-Lime Soda"
+        "1×Lab Burger+mayo+no cheese+pickles",
+        "1×Fries/small",
+        "1×Lemon-Lime Soda/small"
       ],
       "got": [
-        "1×Lab Burger+mayo+pickles",
+        "1×Lab Burger+mayo+no cheese+pickles",
+        "1×Lemon-Lime Soda/small",
         "1×Fries/small"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.636,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 1,
+      "missing": 0,
       "toolCalls": 3,
       "calls": [
         "add_item({\"item\":\"hamburger\",\"modifiers\":[\"pickles\",\"mayo\"]}) -> ok",
-        "add_item({\"item\":\"fries\",\"size\":\"small\"}) -> ok",
-        "add_item({\"item\":\"7-Up\",\"size\":\"small\"}) -> not_found"
+        "add_item({\"item\":\"7-Up\",\"size\":\"small\"}) -> ok",
+        "add_item({\"item\":\"fries\",\"quantity\":1,\"size\":\"small\"}) -> ok"
       ]
     },
     {
       "src": "i'd like a hamburger with ketchup mustard and pickles with a medium strawberry shake and small curly fries",
       "expected": [
-        "1×Lab Burger",
-        "1×Milkshake",
-        "1×Curly Fries"
-      ],
-      "got": [
-        "1×Lab Burger+ketchup+mustard+pickles",
-        "1×Milkshake/medium",
+        "1×Lab Burger+ketchup+mustard+no cheese+pickles",
+        "1×Milkshake/medium+strawberry",
         "1×Curly Fries/small"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.846,
+      "got": [
+        "1×Lab Burger+ketchup+mustard+no cheese+pickles",
+        "1×Milkshake/medium+strawberry",
+        "1×Curly Fries/small"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -1709,9 +1731,9 @@
     {
       "src": "i'd also like a vegan burger with lettuce onions and ketchup a large diet coke and large curly fries",
       "expected": [
-        "1×Veggie Lab",
-        "1×Cola",
-        "1×Curly Fries"
+        "1×Veggie Lab+ketchup+lettuce+onions",
+        "1×Cola/large+diet",
+        "1×Curly Fries/large"
       ],
       "got": [
         "1×Veggie Lab+ketchup+lettuce+onions",
@@ -1732,17 +1754,17 @@
     {
       "src": "the last combo i'll need is a cheeseburger with only ketchup on it a medium vanilla shake and small french fries",
       "expected": [
-        "1×Lab Burger",
-        "1×Milkshake",
-        "1×Fries"
+        "1×Lab Burger+ketchup",
+        "1×Milkshake/medium+vanilla",
+        "1×Fries/small"
       ],
       "got": [
         "1×Lab Burger+ketchup",
-        "1×Milkshake/medium",
+        "1×Milkshake/medium+vanilla",
         "1×Fries/small"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.9,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -1755,9 +1777,9 @@
     {
       "src": "i would like to order a cheeseburger with lettuce tomatoes ketchup and a medium coke small garlic fries on the side",
       "expected": [
-        "1×Lab Burger",
-        "1×Cola",
-        "1×Garlic Fries"
+        "1×Lab Burger+ketchup+lettuce+tomato",
+        "1×Cola/medium",
+        "1×Garlic Fries/small"
       ],
       "got": [
         "1×Lab Burger+ketchup+lettuce+tomato",
@@ -1778,7 +1800,7 @@
     {
       "src": "i would like one cheeseburger toppings should include cheddar cheese lettuce tomatoes ketchup mustard and pickles",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+cheddar+ketchup+lettuce+mustard+pickles+tomato"
       ],
       "got": [
         "1×Lab Burger+cheddar+ketchup+lettuce+mustard+pickles+tomato"
@@ -1795,8 +1817,8 @@
     {
       "src": "i'd like so like one medium sized diet coke with a side of sweet potato fries small",
       "expected": [
-        "1×Cola",
-        "1×Sweet Potato Fries"
+        "1×Cola/medium+diet",
+        "1×Sweet Potato Fries/small"
       ],
       "got": [
         "1×Cola/medium+diet",
@@ -1815,7 +1837,7 @@
     {
       "src": "i'll have a cheeseburger with ketchup onions lettuce and bacon",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+bacon+ketchup+lettuce+onions"
       ],
       "got": [
         "1×Lab Burger+bacon+ketchup+lettuce+onions"
@@ -1832,8 +1854,8 @@
     {
       "src": "i'd also like a small order of garlic fries and a medium iced tea",
       "expected": [
-        "1×Garlic Fries",
-        "1×Iced Tea"
+        "1×Garlic Fries/small",
+        "1×Iced Tea/medium"
       ],
       "got": [
         "1×Garlic Fries/small",
@@ -1852,7 +1874,7 @@
     {
       "src": "i'll take a double cheeseburger with onions mustard and ketchup",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+ketchup+mustard+onions"
       ],
       "got": [
         "1×Double Lab Burger+ketchup+mustard+onions"
@@ -1870,7 +1892,7 @@
       "src": "also an order of fries with a large diet coke",
       "expected": [
         "1×Fries",
-        "1×Cola"
+        "1×Cola/large+diet"
       ],
       "got": [
         "1×Fries",
@@ -1889,17 +1911,17 @@
     {
       "src": "i would like a hamburger with tomatoes pickle lettuce ketchup large coke and a side of small fries",
       "expected": [
-        "1×Lab Burger",
-        "1×Cola",
-        "1×Fries"
-      ],
-      "got": [
-        "1×Lab Burger+ketchup+lettuce+pickles+tomato",
+        "1×Lab Burger+ketchup+lettuce+no cheese+pickles+tomato",
         "1×Cola/large",
         "1×Fries/small"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.923,
+      "got": [
+        "1×Lab Burger+ketchup+lettuce+no cheese+pickles+tomato",
+        "1×Cola/large",
+        "1×Fries/small"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -1912,7 +1934,7 @@
     {
       "src": "can i get the cheeseburger dressed with tomatoes and mayo along with a coke and a side of french fries",
       "expected": [
-        "1×Lab Burger",
+        "1×Lab Burger+mayo+tomato",
         "1×Cola",
         "1×Fries"
       ],
@@ -1935,7 +1957,7 @@
     {
       "src": "could i get a chicken sandwich with lettuce tomatoes and ketchup oh and add bacon please",
       "expected": [
-        "1×Crispy Chicken Sandwich"
+        "1×Crispy Chicken Sandwich+bacon+ketchup+lettuce+tomato"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+bacon+ketchup+lettuce+tomato"
@@ -1952,8 +1974,8 @@
     {
       "src": "also a large pink lemonade and a large side of curly fries",
       "expected": [
-        "1×Pink Lemonade",
-        "1×Curly Fries"
+        "1×Pink Lemonade/large",
+        "1×Curly Fries/large"
       ],
       "got": [
         "1×Pink Lemonade/large",
@@ -1966,13 +1988,13 @@
       "toolCalls": 2,
       "calls": [
         "add_item({\"item\":\"pink lemonade\",\"size\":\"large\"}) -> ok",
-        "add_item({\"item\":\"curly fries\",\"size\":\"large\"}) -> ok"
+        "add_item({\"item\":\"side of curly fries\",\"size\":\"large\"}) -> ok"
       ]
     },
     {
       "src": "then two dr peppers large",
       "expected": [
-        "2×Dr Pepper"
+        "2×Dr Pepper/large"
       ],
       "got": [
         "2×Dr Pepper/large"
@@ -2009,17 +2031,17 @@
     {
       "src": "i would like a hamburger with cheddar cheese bacon mustard and ketchup a small order of curly fries and a large chocolate shake to drink",
       "expected": [
-        "1×Lab Burger",
-        "1×Curly Fries",
-        "1×Milkshake"
+        "1×Lab Burger+bacon+cheddar+ketchup+mustard+no cheese",
+        "1×Curly Fries/small",
+        "1×Milkshake/large+chocolate"
       ],
       "got": [
         "1×Lab Burger+bacon+cheddar+ketchup+mustard",
         "1×Curly Fries/small",
-        "1×Milkshake/large"
+        "1×Milkshake/large+chocolate"
       ],
       "exactMatch": false,
-      "slotAccuracy": 0.857,
+      "slotAccuracy": 0.929,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -2032,13 +2054,13 @@
     {
       "src": "i'd like a double cheeseburger with blue cheese onions pickles lettuce tomatoes jalapenos bacon and ketchup on it",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+bacon+blue cheese+jalapenos+ketchup+lettuce+onions+pickles+tomato"
       ],
       "got": [
-        "1×Double Lab Burger+bacon+blue cheese+ketchup+lettuce+onions+pickles+tomato"
+        "1×Double Lab Burger+bacon+blue cheese+jalapenos+ketchup+lettuce+onions+pickles+tomato"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.9,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 1,
@@ -2049,8 +2071,8 @@
     {
       "src": "i'd also like a large root beer to drink and a large order of sweet potato fries",
       "expected": [
-        "1×Root Beer",
-        "1×Sweet Potato Fries"
+        "1×Root Beer/large",
+        "1×Sweet Potato Fries/large"
       ],
       "got": [
         "1×Root Beer/large",
@@ -2069,9 +2091,9 @@
     {
       "src": "can i have a double cheese burger with bacon and ketchup a large curly fries and a large coke please thanks",
       "expected": [
-        "1×Double Lab Burger",
-        "1×Curly Fries",
-        "1×Cola"
+        "1×Double Lab Burger+bacon+ketchup",
+        "1×Curly Fries/large",
+        "1×Cola/large"
       ],
       "got": [
         "1×Double Lab Burger+bacon+ketchup",
@@ -2092,7 +2114,7 @@
     {
       "src": "hello i'd like a chicken sandwich with extra lettuce bacon and extra pickles",
       "expected": [
-        "1×Crispy Chicken Sandwich"
+        "1×Crispy Chicken Sandwich+bacon"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+bacon"
@@ -2109,8 +2131,8 @@
     {
       "src": "i'd also like a small fry and large root beer",
       "expected": [
-        "1×Fries",
-        "1×Root Beer"
+        "1×Fries/small",
+        "1×Root Beer/large"
       ],
       "got": [
         "1×Fries/small",
@@ -2129,30 +2151,32 @@
     {
       "src": "i'd like to get a vegan burger with lettuce tomatoes jalapenos onions mustard and mayo",
       "expected": [
-        "1×Veggie Lab"
+        "1×Veggie Lab+jalapenos+lettuce+mayo+mustard+onions+tomato"
       ],
-      "got": [],
-      "exactMatch": false,
-      "slotAccuracy": 0,
+      "got": [
+        "1×Veggie Lab+jalapenos+lettuce+mayo+mustard+onions+tomato"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 1,
+      "missing": 0,
       "toolCalls": 1,
       "calls": [
-        "get_menu({\"category\":\"burgers\"}) -> ok"
+        "add_item({\"item\":\"vegan burger\",\"modifiers\":[\"lettuce\",\"tomatoes\",\"jalapeños\",\"onions\",\"mustard\",\"mayo\"]}) -> ok"
       ]
     },
     {
       "src": "with that i want a large vanilla shake and a large order of garlic fries",
       "expected": [
-        "1×Milkshake",
-        "1×Garlic Fries"
-      ],
-      "got": [
-        "1×Milkshake/large",
+        "1×Milkshake/large+vanilla",
         "1×Garlic Fries/large"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.857,
+      "got": [
+        "1×Milkshake/large+vanilla",
+        "1×Garlic Fries/large"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 2,
@@ -2164,7 +2188,7 @@
     {
       "src": "i would like a cheeseburger with cheddar cheese lettuce tomatoes and pickles and mayonnaise with a side of fries",
       "expected": [
-        "1×Lab Burger",
+        "1×Lab Burger+cheddar+lettuce+mayo+pickles+tomato",
         "1×Fries"
       ],
       "got": [
@@ -2195,15 +2219,15 @@
       "missing": 0,
       "toolCalls": 1,
       "calls": [
-        "add_item({\"for_whom\":\"me\",\"item\":\"iced tea\"}) -> ok"
+        "add_item({\"item\":\"iced tea\"}) -> ok"
       ]
     },
     {
       "src": "veggie burger with lettuce and bacon large curly fry and a small iced tea",
       "expected": [
-        "1×Veggie Lab",
-        "1×Curly Fries",
-        "1×Iced Tea"
+        "1×Veggie Lab+bacon+lettuce",
+        "1×Curly Fries/large",
+        "1×Iced Tea/small"
       ],
       "got": [
         "1×Veggie Lab+bacon+lettuce",
@@ -2224,7 +2248,7 @@
     {
       "src": "i'll go with a chicken sandwich and for toppings i would like mustard lettuce tomatoes and pickles",
       "expected": [
-        "1×Crispy Chicken Sandwich"
+        "1×Crispy Chicken Sandwich+lettuce+mustard+pickles+tomato"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+lettuce+mustard+pickles+tomato"
@@ -2241,7 +2265,7 @@
     {
       "src": "for my drink i'd like a large dr pepper",
       "expected": [
-        "1×Dr Pepper"
+        "1×Dr Pepper/large"
       ],
       "got": [
         "1×Dr Pepper/large"
@@ -2258,7 +2282,7 @@
     {
       "src": "for my side item i'll take a large order of garlic fries",
       "expected": [
-        "1×Garlic Fries"
+        "1×Garlic Fries/large"
       ],
       "got": [
         "1×Garlic Fries/large"
@@ -2275,7 +2299,7 @@
     {
       "src": "i want a cheeseburger with cheddar cheese and bacon",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+bacon+cheddar"
       ],
       "got": [
         "1×Lab Burger+bacon+cheddar"
@@ -2292,8 +2316,8 @@
     {
       "src": "i also need one large fries and a medium coke",
       "expected": [
-        "1×Fries",
-        "1×Cola"
+        "1×Fries/large",
+        "1×Cola/medium"
       ],
       "got": [
         "1×Fries/large",
@@ -2305,24 +2329,24 @@
       "missing": 0,
       "toolCalls": 2,
       "calls": [
-        "add_item({\"item\":\"fries\",\"size\":\"large\"}) -> ok",
-        "add_item({\"item\":\"Coke\",\"size\":\"medium\"}) -> ok"
+        "add_item({\"item\":\"fries\",\"quantity\":1,\"size\":\"large\"}) -> ok",
+        "add_item({\"item\":\"Coke\",\"quantity\":1,\"size\":\"medium\"}) -> ok"
       ]
     },
     {
       "src": "can i have a double cheeseburger with pickles and blue cheese a large garlic fries and a small strawberry shake",
       "expected": [
-        "1×Double Lab Burger",
-        "1×Garlic Fries",
-        "1×Milkshake"
+        "1×Double Lab Burger+blue cheese+pickles",
+        "1×Garlic Fries/large",
+        "1×Milkshake/small+strawberry"
       ],
       "got": [
         "1×Double Lab Burger+blue cheese+pickles",
         "1×Garlic Fries/large",
-        "1×Milkshake/small"
+        "1×Milkshake/small+strawberry"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.909,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -2335,13 +2359,13 @@
     {
       "src": "can i get a hamburger with blue cheese lettuce and tomatoes please",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+blue cheese+lettuce+no cheese+tomato"
       ],
       "got": [
-        "1×Lab Burger+blue cheese+lettuce+tomato"
+        "1×Lab Burger+blue cheese+lettuce+no cheese+tomato"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.833,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 1,
@@ -2352,8 +2376,8 @@
     {
       "src": "i'll also have a small order of sweet potato fries and a large diet coke with that",
       "expected": [
-        "1×Sweet Potato Fries",
-        "1×Cola"
+        "1×Sweet Potato Fries/small",
+        "1×Cola/large+diet"
       ],
       "got": [
         "1×Sweet Potato Fries/small",
@@ -2372,8 +2396,8 @@
     {
       "src": "could i please get one cheeseburger with cheddar lettuce tomato and onions and one vegan burger with ketchup and mayonnaise",
       "expected": [
-        "1×Lab Burger",
-        "1×Veggie Lab"
+        "1×Lab Burger+cheddar+lettuce+onions+tomato",
+        "1×Veggie Lab+ketchup+mayo"
       ],
       "got": [
         "1×Lab Burger+cheddar+lettuce+onions+tomato",
@@ -2392,9 +2416,9 @@
     {
       "src": "and could i also get two medium diet cokes one small fry and one small curly fry",
       "expected": [
-        "2×Cola",
-        "1×Fries",
-        "1×Curly Fries"
+        "2×Cola/medium+diet",
+        "1×Fries/small",
+        "1×Curly Fries/small"
       ],
       "got": [
         "1×Fries/small",
@@ -2415,30 +2439,33 @@
     {
       "src": "i'd like to try out your vegan burger please can you put lettuce and mayonnaise and mustard on that",
       "expected": [
-        "1×Veggie Lab"
+        "1×Veggie Lab+lettuce+mayo+mustard"
       ],
-      "got": [],
-      "exactMatch": false,
-      "slotAccuracy": 0,
+      "got": [
+        "1×Veggie Lab+lettuce+mayo+mustard"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 1,
-      "toolCalls": 1,
+      "missing": 0,
+      "toolCalls": 2,
       "calls": [
-        "get_menu({\"category\":\"burgers\"}) -> ok"
+        "get_menu({\"category\":\"burgers\"}) -> ok",
+        "add_item({\"item\":\"Veggie Lab\",\"modifiers\":[\"lettuce\",\"mayonnaise\",\"mustard\"]}) -> ok"
       ]
     },
     {
       "src": "i want a sugar free lemonade to drink also and a side of sweet potato fries",
       "expected": [
-        "1×Pink Lemonade",
+        "1×Pink Lemonade+zero sugar",
         "1×Sweet Potato Fries"
       ],
       "got": [
-        "1×Pink Lemonade",
+        "1×Pink Lemonade+zero sugar",
         "1×Sweet Potato Fries"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.8,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 2,
@@ -2450,7 +2477,7 @@
     {
       "src": "i like to order a hamburger with tomatoes cheddar cheese lettuce ketchup and ice tea and french fries on the side",
       "expected": [
-        "1×Lab Burger",
+        "1×Lab Burger+cheddar+ketchup+lettuce+no cheese+tomato",
         "1×Iced Tea",
         "1×Fries"
       ],
@@ -2473,9 +2500,9 @@
     {
       "src": "i'll have a chicken sandwich with lettuce mayo and pickles with small garlic fries and a medium coke",
       "expected": [
-        "1×Crispy Chicken Sandwich",
-        "1×Garlic Fries",
-        "1×Cola"
+        "1×Crispy Chicken Sandwich+lettuce+mayo+pickles",
+        "1×Garlic Fries/small",
+        "1×Cola/medium"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+lettuce+mayo+pickles",
@@ -2496,7 +2523,7 @@
     {
       "src": "hi i'd like a double cheeseburger with ketchup and mayo",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+ketchup+mayo"
       ],
       "got": [
         "1×Double Lab Burger+ketchup+mayo"
@@ -2513,15 +2540,15 @@
     {
       "src": "a side of small sweet potato fries and a large chocolate milk shake",
       "expected": [
-        "1×Sweet Potato Fries",
-        "1×Milkshake"
+        "1×Sweet Potato Fries/small",
+        "1×Milkshake/large+chocolate"
       ],
       "got": [
         "1×Sweet Potato Fries/small",
-        "1×Milkshake/large"
+        "1×Milkshake/large+chocolate"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.857,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 2,
@@ -2533,7 +2560,7 @@
     {
       "src": "i'd like a cheeseburger with cheddar cheese ketchup mayo and onions",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+cheddar+ketchup+mayo+onions"
       ],
       "got": [
         "1×Lab Burger+cheddar+ketchup+mayo+onions"
@@ -2550,8 +2577,8 @@
     {
       "src": "also a small order of fries and a medium coke please",
       "expected": [
-        "1×Fries",
-        "1×Cola"
+        "1×Fries/small",
+        "1×Cola/medium"
       ],
       "got": [
         "1×Fries/small",
@@ -2570,9 +2597,9 @@
     {
       "src": "i'll have a chicken sandwich with lettuce tomatoes and mayo small french fries and a medium iced tea please",
       "expected": [
-        "1×Crispy Chicken Sandwich",
-        "1×Fries",
-        "1×Iced Tea"
+        "1×Crispy Chicken Sandwich+lettuce+mayo+tomato",
+        "1×Fries/small",
+        "1×Iced Tea/medium"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+lettuce+mayo+tomato",
@@ -2593,41 +2620,43 @@
     {
       "src": "i'd like a cheeseburger with lettuce tomato onions pickles and ketchup and a hamburger with only pickles",
       "expected": [
-        "1×Lab Burger",
-        "1×Lab Burger"
+        "1×Lab Burger+ketchup+lettuce+onions+pickles+tomato",
+        "1×Lab Burger+no cheese+pickles"
       ],
       "got": [
-        "1×Lab Burger+ketchup+lettuce+onions+pickles+tomato"
+        "1×Lab Burger+ketchup+lettuce+onions+pickles+tomato",
+        "1×Lab Burger+no cheese+pickles"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.636,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 1,
+      "missing": 0,
       "toolCalls": 2,
       "calls": [
         "add_item({\"item\":\"cheeseburger\",\"modifiers\":[\"lettuce\",\"tomato\",\"onions\",\"pickles\",\"ketchup\"]}) -> ok",
-        "add_item({\"item\":\"hamburger\",\"modifiers\":[\"pickles\"],\"remove_modifiers\":[\"lettuce\",\"tomato\",\"onions\",\"ketchup\"]}) -> needs_confirmation"
+        "add_item({\"item\":\"hamburger\",\"modifiers\":[\"only pickles\"]}) -> ok"
       ]
     },
     {
       "src": "also two small orders of fries and a small seven up and a medium diet coke",
       "expected": [
-        "2×Fries",
-        "1×Lemon-Lime Soda",
-        "1×Cola"
+        "2×Fries/small",
+        "1×Lemon-Lime Soda/small",
+        "1×Cola/medium+diet"
       ],
       "got": [
         "2×Fries/small",
+        "1×Lemon-Lime Soda/small",
         "1×Cola/medium+diet"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.7,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 1,
+      "missing": 0,
       "toolCalls": 3,
       "calls": [
         "add_item({\"item\":\"fries\",\"quantity\":2,\"size\":\"small\"}) -> ok",
-        "add_item({\"item\":\"7-Up\",\"size\":\"small\"}) -> not_found",
+        "add_item({\"item\":\"7-Up\",\"size\":\"small\"}) -> ok",
         "add_item({\"item\":\"Diet Coke\",\"size\":\"medium\"}) -> ok"
       ]
     },
@@ -2636,7 +2665,7 @@
       "expected": [
         "1×Side Salad",
         "1×Apple Slices",
-        "1×Cola"
+        "1×Cola/medium+diet"
       ],
       "got": [
         "1×Side Salad",
@@ -2647,10 +2676,11 @@
       "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
-      "toolCalls": 3,
+      "toolCalls": 4,
       "calls": [
-        "add_item({\"item\":\"salad\"}) -> ok",
-        "add_item({\"item\":\"apple slices\"}) -> ok",
+        "get_menu({}) -> ok",
+        "add_item({\"item\":\"salad\",\"quantity\":1}) -> ok",
+        "add_item({\"item\":\"apple slices\",\"quantity\":1}) -> ok",
         "add_item({\"item\":\"Diet Coke\",\"size\":\"medium\"}) -> ok"
       ]
     },
@@ -2668,7 +2698,7 @@
       "missing": 0,
       "toolCalls": 1,
       "calls": [
-        "add_item({\"item\":\"double cheeseburgers\",\"modifiers\":[\"plain\"],\"quantity\":2}) -> ok"
+        "add_item({\"item\":\"double cheeseburger\",\"modifiers\":[\"plain\"],\"quantity\":2}) -> ok"
       ]
     },
     {
@@ -2694,7 +2724,7 @@
     {
       "src": "i also want two orders of large curly fries",
       "expected": [
-        "2×Curly Fries"
+        "2×Curly Fries/large"
       ],
       "got": [
         "2×Curly Fries/large"
@@ -2711,21 +2741,22 @@
     {
       "src": "can i have two chicken sandwiches with mayonnaise lettuce and tomato two orders of fries and two small coffees please",
       "expected": [
-        "2×Crispy Chicken Sandwich",
-        "2×Fries",
-        "2×Coffee"
-      ],
-      "got": [
+        "2×Crispy Chicken Sandwich+lettuce+mayo+tomato",
         "2×Fries",
         "2×Coffee/small"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.5,
+      "got": [
+        "2×Crispy Chicken Sandwich+lettuce+mayo+tomato",
+        "2×Fries",
+        "2×Coffee/small"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 1,
+      "missing": 0,
       "toolCalls": 3,
       "calls": [
-        "add_item({\"item\":\"chicken sandwiches\",\"modifiers\":[\"mayonnaise\",\"lettuce\",\"tomato\"],\"quantity\":2}) -> not_found",
+        "add_item({\"item\":\"chicken sandwiches\",\"modifiers\":[\"mayonnaise\",\"lettuce\",\"tomato\"],\"quantity\":2}) -> ok",
         "add_item({\"item\":\"fries\",\"quantity\":2}) -> ok",
         "add_item({\"item\":\"coffees\",\"quantity\":2,\"size\":\"small\"}) -> ok"
       ]
@@ -2733,17 +2764,17 @@
     {
       "src": "i would like a hamburger with lettuce jalapenos pickle ketchup large coke and a side order of small curly fries",
       "expected": [
-        "1×Lab Burger",
-        "1×Cola",
-        "1×Curly Fries"
-      ],
-      "got": [
-        "1×Lab Burger+ketchup+lettuce+pickles",
+        "1×Lab Burger+jalapenos+ketchup+lettuce+no cheese+pickles",
         "1×Cola/large",
         "1×Curly Fries/small"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.846,
+      "got": [
+        "1×Lab Burger+jalapenos+ketchup+lettuce+no cheese+pickles",
+        "1×Cola/large",
+        "1×Curly Fries/small"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -2756,17 +2787,17 @@
     {
       "src": "i'd like a cheeseburger with only mustard a large order of garlic fries and a small vanilla shake",
       "expected": [
-        "1×Lab Burger",
-        "1×Garlic Fries",
-        "1×Milkshake"
+        "1×Lab Burger+mustard",
+        "1×Garlic Fries/large",
+        "1×Milkshake/small+vanilla"
       ],
       "got": [
         "1×Lab Burger+mustard",
         "1×Garlic Fries/large",
-        "1×Milkshake/small"
+        "1×Milkshake/small+vanilla"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.9,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -2779,7 +2810,7 @@
     {
       "src": "i'd like a cheeseburger please with cheddar cheese pickles and mayonnaise",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+cheddar+mayo+pickles"
       ],
       "got": [
         "1×Lab Burger+cheddar+mayo+pickles"
@@ -2796,8 +2827,8 @@
     {
       "src": "and i'd like a large order of curly fries and a large dr pepper",
       "expected": [
-        "1×Curly Fries",
-        "1×Dr Pepper"
+        "1×Curly Fries/large",
+        "1×Dr Pepper/large"
       ],
       "got": [
         "1×Curly Fries/large",
@@ -2816,13 +2847,13 @@
     {
       "src": "i would like a cheeseburger with jalapenos lettuce onions tomatoes and ketchup",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+jalapenos+ketchup+lettuce+onions+tomato"
       ],
       "got": [
-        "1×Lab Burger+ketchup+lettuce+onions+tomato"
+        "1×Lab Burger+jalapenos+ketchup+lettuce+onions+tomato"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.857,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 1,
@@ -2834,7 +2865,7 @@
       "src": "a side of fries and a large root beer",
       "expected": [
         "1×Fries",
-        "1×Root Beer"
+        "1×Root Beer/large"
       ],
       "got": [
         "1×Fries",
@@ -2853,17 +2884,17 @@
     {
       "src": "i'll take a hamburger with ketchup and mayo plus a large curly fries and one large chocolate shake please",
       "expected": [
-        "1×Lab Burger",
-        "1×Curly Fries",
-        "1×Milkshake"
+        "1×Lab Burger+ketchup+mayo+no cheese",
+        "1×Curly Fries/large",
+        "1×Milkshake/large+chocolate"
       ],
       "got": [
-        "1×Lab Burger+ketchup+mayo",
+        "1×Lab Burger+ketchup+mayo+no cheese",
         "1×Curly Fries/large",
-        "1×Milkshake/large"
+        "1×Milkshake/large+chocolate"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.833,
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
       "missing": 0,
       "toolCalls": 3,
@@ -2876,9 +2907,9 @@
     {
       "src": "can i get a cheese burger with ketchup lettuce and pickles with two sides of medium garlic fries and two medium cokes",
       "expected": [
-        "1×Lab Burger",
-        "2×Garlic Fries",
-        "2×Cola"
+        "1×Lab Burger+ketchup+lettuce+pickles",
+        "2×Garlic Fries/medium",
+        "2×Cola/medium"
       ],
       "got": [
         "1×Lab Burger+ketchup+lettuce+pickles",
@@ -2893,27 +2924,28 @@
       "calls": [
         "add_item({\"item\":\"cheeseburger\",\"modifiers\":[\"ketchup\",\"lettuce\",\"pickles\"]}) -> ok",
         "add_item({\"item\":\"garlic fries\",\"quantity\":2,\"size\":\"medium\"}) -> ok",
-        "add_item({\"item\":\"coke\",\"quantity\":2,\"size\":\"medium\"}) -> ok"
+        "add_item({\"item\":\"Coke\",\"quantity\":2,\"size\":\"medium\"}) -> ok"
       ]
     },
     {
       "src": "i'd like a double cheeseburger with bacon large french fries and a large root beer",
       "expected": [
-        "1×Double Lab Burger",
-        "1×Fries",
-        "1×Root Beer"
-      ],
-      "got": [
+        "1×Double Lab Burger+bacon",
         "1×Fries/large",
         "1×Root Beer/large"
       ],
-      "exactMatch": false,
-      "slotAccuracy": 0.667,
+      "got": [
+        "1×Double Lab Burger+bacon",
+        "1×Fries/large",
+        "1×Root Beer/large"
+      ],
+      "exactMatch": true,
+      "slotAccuracy": 1,
       "falseAdds": 0,
-      "missing": 1,
+      "missing": 0,
       "toolCalls": 3,
       "calls": [
-        "add_item({\"item\":\"double cheeseburger with bacon\"}) -> ambiguous",
+        "add_item({\"item\":\"double cheeseburger\",\"modifiers\":[\"bacon\"]}) -> ok",
         "add_item({\"item\":\"french fries\",\"size\":\"large\"}) -> ok",
         "add_item({\"item\":\"root beer\",\"size\":\"large\"}) -> ok"
       ]
@@ -2921,7 +2953,7 @@
     {
       "src": "i'd like a cheeseburger with cheddar cheese lettuce tomatoes and bacon",
       "expected": [
-        "1×Lab Burger"
+        "1×Lab Burger+bacon+cheddar+lettuce+tomato"
       ],
       "got": [
         "1×Lab Burger+bacon+cheddar+lettuce+tomato"
@@ -2938,7 +2970,7 @@
     {
       "src": "i'd also like a medium root beer",
       "expected": [
-        "1×Root Beer"
+        "1×Root Beer/medium"
       ],
       "got": [
         "1×Root Beer/medium"
@@ -2955,7 +2987,7 @@
     {
       "src": "i'd like a double cheeseburger with grilled onions and pickles but no tomatoes",
       "expected": [
-        "1×Double Lab Burger"
+        "1×Double Lab Burger+no tomato+onions+pickles"
       ],
       "got": [
         "1×Double Lab Burger+no tomato+onions+pickles"
@@ -2972,8 +3004,8 @@
     {
       "src": "i'd also like large fries and a large coke",
       "expected": [
-        "1×Fries",
-        "1×Cola"
+        "1×Fries/large",
+        "1×Cola/large"
       ],
       "got": [
         "1×Fries/large",
@@ -2993,9 +3025,9 @@
       "src": "can i have a plain vegan burger with large curly fries a small dr pepper and a medium diet coke",
       "expected": [
         "1×Veggie Lab",
-        "1×Curly Fries",
-        "1×Dr Pepper",
-        "1×Cola"
+        "1×Curly Fries/large",
+        "1×Dr Pepper/small",
+        "1×Cola/medium+diet"
       ],
       "got": [
         "1×Veggie Lab",
@@ -3009,7 +3041,7 @@
       "missing": 0,
       "toolCalls": 4,
       "calls": [
-        "add_item({\"item\":\"vegan burger\",\"modifiers\":[\"plain\"]}) -> ok",
+        "add_item({\"item\":\"plain vegan burger\"}) -> ok",
         "add_item({\"item\":\"curly fries\",\"size\":\"large\"}) -> ok",
         "add_item({\"item\":\"Dr Pepper\",\"size\":\"small\"}) -> ok",
         "add_item({\"item\":\"Diet Coke\",\"size\":\"medium\"}) -> ok"
@@ -3018,8 +3050,8 @@
     {
       "src": "can i get a chicken sandwich with bacon lettuce and tomatoes and two cheeseburgers with mayo only",
       "expected": [
-        "1×Crispy Chicken Sandwich",
-        "2×Lab Burger"
+        "1×Crispy Chicken Sandwich+bacon+lettuce+tomato",
+        "2×Lab Burger+mayo"
       ],
       "got": [
         "1×Crispy Chicken Sandwich+bacon+lettuce+tomato",
@@ -3039,8 +3071,8 @@
       "src": "i also need one order of curly fries plus a medium diet coke and a large root beer",
       "expected": [
         "1×Curly Fries",
-        "1×Cola",
-        "1×Root Beer"
+        "1×Cola/medium+diet",
+        "1×Root Beer/large"
       ],
       "got": [
         "1×Curly Fries",

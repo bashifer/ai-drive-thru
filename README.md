@@ -1,6 +1,9 @@
 # Backseat — one order, several people talking
 
 Built for the [AssemblyAI Voice Agent Hackathon](https://lablab.ai/ai-hackathons/assemblyai-voice-agent-hackathon) (Sep 2026).
+**Live demo: <https://lablab-drive-thru.vercel.app>** — ▶ Watch a recorded lane needs no microphone and no key.
+
+![The same tool call booked twice: a cart that trusts every call books 260 chicken nuggets for $1,207.42; Backseat calls the crew and books nothing](docs/cover.jpg)
 
 **Most voice agents solve speech-to-text. Backseat solves speech-to-order attribution.**
 
@@ -61,6 +64,9 @@ Backseat does not claim to be first to notice the passenger problem. It takes th
 end of it: not *whom to ignore*, but **what a cart should do when several real people build
 one order together** — ownership, permission, candidate-versus-confirmed state, and a
 deterministic audit trail from each cart mutation back to the voice that caused it.
+
+A second transcript can check *what* was said before a tool call commits. Backseat's second
+ear is there to say *who* said it — and so whose food it is, and whether they may change it.
 
 ## Architecture: two ears
 
@@ -170,13 +176,14 @@ correct ticket attached. The nearest open data is Google's
 like AISHELL-5 (Mandarin, no orders), and noise sets like MS-SNSD and DEMAND. So the bench
 builds its own scenes, with ground truth.
 
-**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 92 cases in under a
-second. Fifty-three go straight at the order engine: corrections, ownership and permission,
-back-seat requests, food "for him", prank quantities, repeats, items that are not on the
-menu, closing, in phrasing that follows Taskmaster-2. Eleven replay tool calls that real
-sessions made through both carts of the A/B view, thirteen check when a tool call may run,
-what the close looks at again and which voice "for him" means, six check the replay tape,
-five check where a customer's turn begins, and four check how a reply is timed.
+**Layer 1 — the ticket, without audio.** `npm run test:engine` runs 103 cases in under a
+second. Sixty-four go straight at the order engine: corrections, ownership and permission,
+back-seat requests, food "for him", the words the 156 real orders below actually used,
+prank quantities, repeats, items that are not on the menu, closing, in phrasing that follows
+Taskmaster-2. Eleven replay tool calls that real sessions made through both carts of the A/B
+view, thirteen check when a tool call may run, what the close looks at again and which voice
+"for him" means, six check the replay tape, five check where a customer's turn begins, and
+four check how a reply is timed.
 
 **Layer 2 — the scene bench.** `npm run bench` plays a scripted car into the real APIs.
 Voices come from AssemblyAI's own TTS (a Voice Agent session whose `greeting` is the line),
@@ -225,71 +232,84 @@ order guards are switched on.
 
 | | Backseat | Single ear, no guards |
 | --- | --- | --- |
-| Scenes passed | **17/21** | 13/21 |
-| Order Exact Match | **86%** | 67% |
-| Slot accuracy | **96%** | 94% |
-| False adds | **1** | 6 |
-| Escalation recall | **50%** | 0% |
-| Speaker attribution | **95%** | 94% |
+| Scenes passed | **19/21** | 16/21 |
+| Order Exact Match | **91%** | 81% |
+| Slot accuracy | **99%** | 99% |
+| False adds | **1** | 3 |
+| Escalation recall | **100%** | 0% |
+| Speaker attribution | **95%** | 95% |
 | Lines placed with no voice | **0%** | — (every line is the driver's) |
-| Reply after a tool call, last word → first audible word | p50 5.7 s · p90 7.2 s (44 replies) | p50 5.5 s · p90 7.2 s (47 replies) |
+| Reply after a tool call, last word → first audible word | p50 3.0 s · p90 3.8 s (46 replies) | p50 2.7 s · p90 3.9 s (44 replies) |
 
-The baseline's six false adds are the next lane's fries and apple pie, the kid's onion rings,
-a second chicken sandwich, a second Bacon Stack for a sentence said twice, and 260 nuggets.
-Backseat's one is the same kid's onion rings, and it is worth the detail: the room ear could
-not place that 1.7-second shout with a voice at all, so the rule that an unplaced voice is
-the driver's put the rings on the ticket. Nothing went to the kitchen — the close read the
-order back and asked "is that right?", and the scripted car has no answer to that, so the
-order was still open when the scene ended. A driver would have said no. Speaker attribution
-only scores expected lines, so false adds cost the baseline nothing there; its one point of
-difference is `passenger-owns-their-fix`, where diarization swapped the two voices. Order
-Exact Match is the metric a restaurant actually feels, because a cart is either right or it
-is not.
+The baseline's three false adds are 260 nuggets, a second Bacon Stack for a sentence said
+twice, and a second chicken sandwich when a passenger changed their own. Backseat's one is a
+kid's onion rings, and it is worth the detail: the room ear could not place that 1.7-second
+shout with a voice at all — four times in five runs on 23–24 Sep — so the rule that an
+unplaced voice is the driver's put the rings on the ticket. Nothing went to the kitchen: the
+close read the order back and asked "is that right?", and the scripted car has no answer to
+that, so the order was still open when the scene ended. A driver would have said no. Speaker
+attribution only scores expected lines, so false adds cost the baseline nothing there, and
+both modes lose the same points on `passenger-owns-their-fix`, where diarization swapped the
+two voices. Order Exact Match is the metric a restaurant actually feels, because a cart is
+either right or it is not.
 
-Escalation recall is one scene of two. Asked for 18,000 cups of water, the agent looked at the
-menu and refused the quantity itself ("I can't do eighteen thousand of those") instead of
-putting it through the ticket, so nobody was called. It has now done that in two full runs and
-handed the lane over in three single runs of the same scene: the prompt tells it never to
-refuse a quantity itself, and it sometimes does anyway.
+Both absurd orders went to a person this run: 260 nuggets through the quantity guard, and
+18,000 waters too — in the two runs before, the agent sometimes refused that one itself after
+reading the menu ("I can't do eighteen thousand of those") instead of putting it through the
+ticket, so nobody was called. The single-ear cart booked the nuggets and called nobody. The
+menu fixes below lift the baseline's cart as much as Backseat's: it books through the same
+engine, only without the room ear and the guards.
+
+Reply latency runs from the customer's last word to the first frame of the agent's reply
+that has any sound in it. Nearly every turn at a drive-thru changes the cart, so 46 of
+Backseat's 47 timed replies waited on a tool call: p50 3.0 s, p90 3.8 s. On 23 Sep the same
+measurement said p50 5.7 s, and nothing on our side changed in between. The traces say why:
+an interactive tool call used to keep the agent's reply open about 2.3 s for a transition
+phrase this agent never says, and the result could only go back after it — `reply.done` came
+2.4 s after the call on 23 Sep, and 0.4 s after it on 24 Sep, in both modes. The baseline went
+from 5.5 s to 2.7 s the same way.
+
+Before that, two changes of ours had taken the longest silence out. Closing is one call —
+`finalize_order` hands back the ticket to read — and the calls that end a conversation run
+with `execution_mode: "hold"`, which answers about 50 ms after the result. A reply that
+closed the order went from p50 8.1 s (21 Sep) to 4.6 s (23 Sep); it is 2.4 s now, and every
+other tool reply 3.3 s. Mid-order tools stay interactive on purpose: speech that starts while
+a tool is held is dropped — "…wait, no pickles on that burger", said over a held tool, never
+reached the model, on the bench and in two probes — and with the transition slot gone,
+holding them would buy almost nothing. Afterthoughts are how people order.
+
+These are single-run figures on a stochastic pipeline, and the committed reports in
+`bench/results/` are that same run, on the build that is deployed. Across fourteen full runs
+the scene suite has landed between 15 and 19 of 21 — the gap to the baseline is stable, the
+third digit is not.
 
 On the 156 real orders, one speaker:
 
 | Condition | Order Exact Match | Slot accuracy | False adds |
 | --- | --- | --- | --- |
-| Clean | 67% | 90% | 1 |
-| Recorded car interior, +5 dB | 65% | 88% | 1 |
+| Clean | 96% | 99% | 1 |
+| Recorded car interior, +5 dB | 93% | 96% | 1 |
 
-Two points of exact-match for a real car recording at +5 dB signal-to-noise is the clearest
+On 23 Sep the same set scored 67% and 65%. Reading its 51 misses — the orders, not the
+percentage — found two faults, both ours. The bench answered every tool call "Added.",
+`get_menu` included, so a model that looked the menu up before booking got nonsense back; it
+now runs the order engine during the session, the way the page does. And the menu lost what
+customers said: "chicken sandwiches" and "7-Up" vanished, "chocolate shake" and "sugar-free
+lemonade" arrived plain, "jalapeños" kept its accent, "hamburger" did not mean no cheese, a
+whole clause in one modifier kept only its first topping, and "double bacon cheeseburger"
+was a question instead of a double with bacon. Replaying the 23 Sep run's own recorded calls
+through the fixed engine, with no API in the loop, gives 93% and 89%: that much is the menu,
+and the rest is the harness and the run. The fixes came from reading this set's misses, so it
+is no longer a blind test for them; the scene bench and the live lane are the check. Of the
+seven clean misses left, four are annotations that want "no cheese" on a burger that asked
+for cheddar (or on a plain "burger"), one books "curly fry" as plain fries, one is the agent
+asking about a "vegan burger" instead of booking the Veggie Lab, and one booked two iced teas
+for "two chicken sandwiches with iced tea". One noisy case never ran: the API answered
+`at_capacity`, and it counts as a miss.
+
+Three points of exact-match for a real car recording at +5 dB signal-to-noise is the clearest
 argument in the project for far-field Voice Focus: the noise is audible on the recording and
 the cart barely notices.
-
-Reply latency runs from the customer's last word to the first frame of the agent's reply
-that has any sound in it. At a drive-thru nearly every turn changes the cart, so 44 of
-Backseat's 46 timed replies waited on a tool call. A run on 21 Sep put them at p50 6.3 s and
-p90 10.7 s, and the traces showed where it went: the model calls a tool about 0.9 s after the
-turn ends; in the default interactive mode the reply then stays open another 2.3 s for a
-transition phrase this agent does not say, and the result may only go back after it; the
-answer's first word follows 1.3–2.6 s later; the rest is end-of-turn detection, which we leave
-to the API's adaptive default. Closing an order made two calls and paid the slot twice.
-
-Two changes took the longest silence out. Closing is one call now — `finalize_order` hands
-back the ticket to read — and the calls that end a conversation run with
-`execution_mode: "hold"`, which keeps the agent silent until the result lands and answers
-about 50 ms after it, with no slot. Split out of the same traces, a reply that closed the
-order went from p50 8.1 s and p90 10.9 s (16 replies) to 4.6 s and 7.2 s (17 replies);
-everything else stayed at p50 5.9 s. Mid-order tools stay interactive on purpose. Speech
-that starts while a tool is held is dropped: "…wait, no pickles on that burger", said over a
-held tool, never reached the model, on the bench and in two probes, where the interactive
-slot absorbs it and the next turn applies it. Afterthoughts are how people order. The
-baseline runs the same agent, so it got the same gain; this is the lane's rhythm, not the
-order engine.
-
-These are single-run figures on a stochastic pipeline, and the committed reports in
-`bench/results/` are that same run. Across thirteen full runs the scene suite has landed
-between 15 and 19 of 21, and the order set between 65% and 74% exact across its runs — the
-gap to the baseline is stable, the third digit is not. The 156-order reports are from 20 and
-21 Sep, on earlier builds; that bench speaks one sentence per session into one ear, so the
-room ear, the gate and the closing are not in it.
 
 ### What still fails, and why it stays in the report
 
@@ -299,15 +319,15 @@ room ear, the gate and the closing are not in it.
   thing the project is named after, and it stays in the report.
 - **A child's short shout can come back with no voice at all.** In `backseat-ignored` the
   kid's 1.7-second "And onion rings! Onion rings too!" was labelled PENDING by the room ear,
-  three times in four runs on 23 September and never on the two days before. An unplaced
+  four times in five runs on 23–24 September and never on the two days before. An unplaced
   voice is the driver's, so the rings went on the ticket, and only the closing read-back
-  stood between them and the kitchen. It is the same weakness as the swapped voices below,
+  stood between them and the kitchen. It is the same weakness as the swapped voices above,
   at the other end: too little audio to place a voice at all.
 - **The model sometimes refuses an absurd quantity itself** instead of letting the ticket
-  decide, as in the escalation row above.
+  decide. It passed here; it failed in the two runs before.
 - **A code-switched sentence can lose half of itself.** "Quiero dos hamburguesas, and a large
-  coke" booked two large burgers and lost the drink this run; in the run before it the focused
-  ear heard "en la larga", and the agent asked which burger. It has passed in others.
+  coke" has booked two large burgers without the drink, and once the focused ear heard "en la
+  larga" and the agent asked which burger. It passed here, in both modes.
 - **The model sometimes adds a correction instead of applying it.** In an earlier run, "two
   lab burgers — actually, make that three" came back as `add_item(2)` twice while the agent
   said "three". It passed here.
@@ -336,7 +356,7 @@ failing scenes above live.
 The baseline flag is the honest comparison: identical audio and identical agent, with only
 the diarization gating and the order guards turned off. Reports land in `bench/results/`.
 
-The last run caught Backseat looking for a turn's words in the wrong place. In the published
+A run on 22 Sep caught Backseat looking for a turn's words in the wrong place. In the published
 run before it, `backseat-approved` put the kid's nuggets in the driver's bag, and this README
 said diarization had placed the kid's voice too late. Re-running the scene with the room
 ear's turns in the trace said otherwise: it had delivered "Can I have chicken nuggets?
@@ -350,8 +370,8 @@ driver's "yeah, go ahead", in the kid's bag — and the share of lines Backseat 
 with any voice went from 12% to 0% on that run and 5% on the one after.
 
 Reading the dialogues caught what the scorer could not, and it is worth doing on every run:
-in the run published here 15 of the 21 conversations are clean, against 13 in the run before
-the fixes below. The scorer checks the cart; a person
+in the run published here 18 of the 21 conversations are clean, against 15 on 23 Sep and 13
+before the fixes below. The scorer checks the cart; a person
 at the speaker hears the conversation. Read that way, the 22 Sep run had a lone driver asked
 "and the lab burgers — are those yours?" about their own food (our one-call close had made
 that question the price of every short line the room ear had not placed), a driver who said
@@ -360,10 +380,11 @@ the line. What else can I help with?", and the whole order read out twice. All f
 The close now looks again with the room ear before it asks anything, and a line still nobody's
 is checked the way a crew member checks an order — "one Bacon Stack and a medium iced tea, is
 that right?" — because the room ear cannot tell a lone driver's short line from a kid's, and
-saying nothing had let a kid's unplaced onion rings through. Two faults are left: after a
-customer's "uh-huh" the agent still acknowledges twice, and a closing read-back that nobody
-answers leaves the order open — which is right for a car, and makes a scripted car look
-unfinished.
+saying nothing had let a kid's unplaced onion rings through. What is left: a closing read-back
+that nobody answers leaves the order open — which is right for a car, and makes a scripted car
+look unfinished — and the passenger scene that swaps two voices. The agent's double
+acknowledgement after a customer's "uh-huh", seen in every earlier run, did not show up in
+this one.
 
 What the bench caught that a microphone would not have: diarization finalises a turn about a
 second after the agent's own end-of-turn, so deciding who spoke at `tool.call` time held
@@ -400,11 +421,14 @@ comes with what Backseat does about it.
   silence from the moment a reply starts, through the whole of a tool call. We published
   p50 188 ms before we caught it; the real figure is in the table above. A marker on the
   first voiced frame would save every builder that mistake.
-- **An instant tool costs ~2.3 s in interactive mode.** The reply stays open for a transition
-  phrase, and `tool.result` is only accepted once `reply.done` is the latest event. Prompting
-  does not fill the slot: told to say the item back while the tool runs, the model still
-  emits the calls first and puts the echo in its answer.
-- **`hold` removes the slot, and drops speech that starts during it.** A held result is
+- **An instant tool cost ~2.3 s in interactive mode — until 24 Sep.** The reply stayed open
+  for a transition phrase, and `tool.result` is only accepted once `reply.done` is the latest
+  event, so a tool that answers in a millisecond still waited. Prompting did not fill the
+  slot: told to say the item back while the tool runs, the model still emitted the calls
+  first and put the echo in its answer. In our 24 Sep run the slot was gone — `reply.done`
+  0.4 s after the call instead of 2.4 s — and every reply after a tool call was about 2.5 s
+  faster, in both modes, with nothing changed on our side.
+- **`hold` answers at once, and drops speech that starts during it.** A held result is
   accepted at once and the answer starts ~50 ms later, but "…wait, no pickles on that
   burger", said while a tool was held, never reached the model; holding the result back until
   the customer stopped made the agent answer twice. Backseat holds only the calls after which
