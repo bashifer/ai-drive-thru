@@ -424,13 +424,15 @@ export function resolveMenuItem(spoken: string, daypart: "breakfast" | "allday" 
 
 let toppingWordSet: Set<string> | null = null;
 
-/** Every one-word modifier on the menu, and the words customers put between them. */
+/** Every one-word modifier on the menu, and the words customers put around an item's name. */
 function toppingWords(): Set<string> {
   toppingWordSet ??= new Set([
     ...MENU.flatMap((m) => m.modifiers ?? [])
       .map(modifierKey)
       .filter((k) => !k.includes(" ")),
     ...["with", "and", "no", "extra", "plain", "only", "just", "on", "top", "topped"],
+    // "a large side of curly fries", "an order of garlic fries".
+    ...["a", "an", "the", "of", "side", "order", "some", "please"],
   ]);
   return toppingWordSet;
 }

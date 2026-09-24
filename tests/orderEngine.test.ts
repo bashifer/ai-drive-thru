@@ -167,6 +167,19 @@ describe("menu words the way customers say them", () => {
     e.addItem({ spoken: "bacon burger", attribution: driver() });
     assert.deepEqual(names(e), ["1×Bacon Stack"]);
   });
+
+  test("'a side of curly fries' is curly fries, not a choice between two kinds of fries", () => {
+    for (const [spoken, item] of [
+      ["side of curly fries", "Curly Fries"],
+      ["large side of curly fries", "Curly Fries"],
+      ["an order of garlic fries", "Garlic Fries"],
+    ]) {
+      const e = new OrderEngine();
+      const out = e.addItem({ spoken, attribution: driver() });
+      assert.equal(out.status, "ok", spoken);
+      assert.deepEqual(names(e), [`1×${item}`], spoken);
+    }
+  });
 });
 
 describe("corrections, the way people actually phrase them", () => {
