@@ -153,7 +153,7 @@ steered by its own answers.
 ### Replay: a recorded lane, decided again
 
 **▶ Watch a recorded lane** plays three cars — 260 nuggets, a kid shouting for a shake, and
-"hers without pickles" — in about two minutes, with no microphone, no key and no credits.
+"hers without pickles" — in about a minute and a half, with no microphone, no key and no credits.
 
 The tape (`public/replays/lane.json`) holds only what AssemblyAI said: the Voice Agent's events
 (transcripts, tool calls, the agent's own voice) and the room ear's finished turns with their
