@@ -1,9 +1,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { buildSessionConfig } from "../src/lib/agentConfig";
+import { buildSessionConfig, HELD_TOOLS } from "../src/lib/agentConfig";
 import { OrderEngine } from "../src/lib/orderEngine";
-import { describeActual, scoreOrder, type ExpectedLine } from "../src/lib/scoring";
-import { dispatchTool } from "../src/lib/toolDispatch";
+import { describeActual, describeLine, scoreOrder, type ExpectedLine } from "../src/lib/scoring";
+import { ToolGate, ToolRunner, type QueuedToolCall } from "../src/lib/toolDispatch";
 import { connectVoiceAgent, int16ToBase64 } from "./aai";
 import { loadNoiseBed } from "./fetch-noise";
 import { coverage, loadCases } from "./foodordering";
@@ -21,6 +21,11 @@ import { synthesize } from "./tts";
  * With --snr it runs the same cases over engine noise, which turns the dataset into a
  * robustness sweep rather than a single number.
  *
+ * The order engine answers the agent's calls during the session, through the same gate as
+ * the page: an item not on the menu comes back not_found, a menu lookup returns the menu.
+ * Until 24 Sep every call was answered "Added.", get_menu included, so a model that checked
+ * the menu first got nonsense back and booked nothing.
+ *
  *   npm run bench:orders
  *   npm run bench:orders -- --limit 30 --snr 5
  */
@@ -31,8 +36,6 @@ const AGENT_FRAME = (AGENT_RATE * FRAME_MS) / 1000;
 const VOICE = "george";
 const SETTLE_MS = 3500;
 const CASE_TIMEOUT_MS = 60000;
-
-type Call = { name: string; args: Record<string, unknown>; callId: string };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -53,21 +56,47 @@ const rms = (samples: Int16Array) => {
   return Math.sqrt(sum / Math.max(1, samples.length));
 };
 
-/** Speak one utterance into a session and collect what it books. */
-async function speakToAgent(speech: Int16Array, snrDb: number | null, bed: Int16Array | null): Promise<Call[]> {
+/**
+ * Speak one utterance into a session, and let the order engine answer what it asks for.
+ * Returns the calls the agent made, with their outcomes, as "name(args) -> status".
+ */
+async function speakToAgent(
+  speech: Int16Array,
+  snrDb: number | null,
+  bed: Int16Array | null,
+  engine: OrderEngine,
+): Promise<string[]> {
   const ws = await connectVoiceAgent();
-  const calls: Call[] = [];
+  const trace: string[] = [];
+  const tools = new ToolRunner(engine, { room: null, assumeDriver: true });
+  // As on the page: interactive calls answered at reply.done, held ones as soon as they settle.
+  const gate = new ToolGate({ room: null, held: HELD_TOOLS });
   const noiseGain = snrDb === null ? 0 : (rms(speech) || 0.05) / 10 ** (snrDb / 20);
   const noiseState = { last: 0, lp: 0 };
   const bedLevel = bed ? rms(bed) || 1 : 1;
   let bedCursor = Math.floor(Math.random() * (bed?.length ?? 1));
 
   let ready = false;
-  let answeredTools = false;
   let doneAt: number | null = null;
   let failure: Error | null = null;
   /** Nothing the agent says before the customer has finished counts as an answer. */
   let speechSent = false;
+
+  const runCalls = (calls: QueuedToolCall[], resultReachesAgent: boolean) => {
+    for (const call of calls) {
+      const outcome = tools.run(call, resultReachesAgent);
+      trace.push(`${call.name}(${JSON.stringify(call.args)}) -> ${outcome.status}`);
+      if (!resultReachesAgent) continue;
+      ws.send(
+        JSON.stringify({
+          type: "tool.result",
+          call_id: call.callId,
+          result: JSON.stringify(outcome),
+          is_error: outcome.status === "rejected",
+        }),
+      );
+    }
+  };
 
   ws.on("message", (raw: Buffer) => {
     let msg: { type: string; [k: string]: unknown };
@@ -79,27 +108,20 @@ async function speakToAgent(speech: Int16Array, snrDb: number | null, bed: Int16
 
     if (msg.type === "session.ready") ready = true;
     else if (msg.type === "tool.call") {
-      calls.push({
-        name: String(msg.name),
-        args: (msg.arguments ?? {}) as Record<string, unknown>,
-        callId: String(msg.call_id),
-      });
+      gate.add(
+        {
+          callId: String(msg.call_id),
+          name: String(msg.name),
+          args: (msg.arguments ?? {}) as Record<string, unknown>,
+          turnStartedAt: 0,
+        },
+        performance.now(),
+      );
     } else if (msg.type === "reply.done") {
-      if (!speechSent) return;
-      if (!answeredTools && calls.length) {
-        answeredTools = true;
-        for (const c of calls) {
-          ws.send(
-            JSON.stringify({
-              type: "tool.result",
-              call_id: c.callId,
-              result: JSON.stringify({ status: "ok", message: "Added." }),
-            }),
-          );
-        }
-      } else {
-        doneAt = Date.now();
-      }
+      const calls = gate.drain();
+      runCalls(calls, (msg as { status?: string }).status !== "interrupted");
+      // A reply that asked for nothing is the agent's answer to the whole order.
+      if (!calls.length && speechSent) doneAt = Date.now();
     } else if (msg.type === "session.error") {
       failure = new Error(`${msg.code}: ${msg.message}`);
     }
@@ -122,7 +144,8 @@ async function speakToAgent(speech: Int16Array, snrDb: number | null, bed: Int16
   for (let frame = 0; frame < totalFrames; frame++) {
     if (frame === speechFrames) speechSent = true;
     if (failure || Date.now() - startedAt > CASE_TIMEOUT_MS) break;
-    if (doneAt && Date.now() - doneAt > 800) break;
+    if (doneAt && gate.size === 0 && Date.now() - doneAt > 800) break;
+    runCalls(gate.due(performance.now()), true);
 
     const pcm = new Int16Array(AGENT_FRAME);
     const noise = bed ? null : noiseFrame(AGENT_FRAME, noiseGain, noiseState);
@@ -150,7 +173,7 @@ async function speakToAgent(speech: Int16Array, snrDb: number | null, bed: Int16
   }
   setTimeout(() => ws.close(), 100);
   if (failure) throw failure;
-  return calls;
+  return trace;
 }
 
 type CaseResult = {
@@ -175,7 +198,8 @@ async function runCase(
   const engine = new OrderEngine({ guards: true, speakerAware: false });
   const base: CaseResult = {
     src,
-    expected: expected.map((e) => `${e.qty}×${e.item}`),
+    // The whole line — size and modifiers too, which is what the score compares.
+    expected: expected.map(describeLine),
     got: [],
     exactMatch: false,
     slotAccuracy: 0,
@@ -185,18 +209,12 @@ async function runCase(
     calls: [],
   };
 
-  let calls: Call[];
+  let trace: string[];
   try {
     const speech = await synthesize(src, VOICE);
-    calls = await speakToAgent(speech, snrDb, bed);
+    trace = await speakToAgent(speech, snrDb, bed, engine);
   } catch (err) {
     return { ...base, error: err instanceof Error ? err.message : String(err) };
-  }
-
-  const trace: string[] = [];
-  for (const call of calls) {
-    const outcome = dispatchTool(engine, call.name, call.args, { room: null, turnStartedAt: 0, assumeDriver: true });
-    trace.push(`${call.name}(${JSON.stringify(call.args)}) -> ${outcome.status}`);
   }
 
   const snap = engine.snapshot();
@@ -211,7 +229,7 @@ async function runCase(
     slotAccuracy: score.slotAccuracy,
     falseAdds: score.falseAdds,
     missing: score.missing,
-    toolCalls: calls.length,
+    toolCalls: trace.length,
     calls: trace,
   };
 }
