@@ -44,10 +44,12 @@ export type GateOptions = {
 /**
  * When a tool call may run.
  *
- * An interactive tool's reply stays open ~2.3 s after the call for a transition phrase
- * this agent does not say, and its result may only go back once `reply.done` is the
- * latest event — so a reply with any interactive call in it runs at `reply.done`
- * (`drain`). That slot is also when the room ear catches up with who said what.
+ * An interactive tool's result may only go back once `reply.done` is the latest event, so
+ * a reply with any interactive call in it runs at `reply.done` (`drain`). Until 24 Sep
+ * 2026 that reply stayed open ~2.3 s after the call for a transition phrase this agent
+ * does not say, which also gave the room ear time to catch up with who said what; now it
+ * ends ~0.4 s after the call. The room ear's turn usually lands before the call itself
+ * does, and the 24 Sep bench runs had no slot.
  *
  * A held tool keeps the agent silent until our result and answers ~50 ms after it, so
  * it runs as early as is safe: once the room ear has finished the turn, if the call

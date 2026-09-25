@@ -85,16 +85,17 @@ const sizeParam = {
 /**
  * The tools that end the conversation are held; the rest stay interactive.
  *
- * In the default interactive mode the reply stays open ~2.3 s after a tool call for a
- * transition phrase ("let me check that"), and the result can only go back after it.
- * This agent says nothing there, so it is dead air — and closing an order used to pay
- * it twice. Held, the agent is silent until the result lands and answers ~50 ms later.
+ * In the default interactive mode the result can only go back once the reply is done, and
+ * until 24 Sep 2026 the reply stayed open ~2.3 s after a tool call for a transition phrase
+ * ("let me check that"). This agent says nothing there, so it was dead air — and closing
+ * an order used to pay it twice. Since then the API ends that reply ~0.4 s after the call.
+ * Held, the agent is silent until the result lands and answers ~50 ms later.
  *
  * Held is not safe mid-order. Speech that starts while a tool is held is dropped: "a lab
  * burger and onion rings… wait, no pickles on that burger" lost the correction every
- * time we tried it (bench and two probes, 22 Sep), where the interactive slot absorbs
- * it and the next turn applies it. Afterthoughts are how people order, so only the calls
- * after which the customer is done talking are held.
+ * time we tried it (bench and two probes, 22 Sep), where an interactive reply lets it
+ * through and the next turn applies it. Afterthoughts are how people order, so only the
+ * calls after which the customer is done talking are held.
  */
 export const HELD_TOOLS: ReadonlySet<string> = new Set(["finalize_order", "call_crew_member"]);
 

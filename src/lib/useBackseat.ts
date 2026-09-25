@@ -207,9 +207,9 @@ export function useBackseat() {
 
   /**
    * One tool call against both carts, when `ToolGate` says it may run: at `reply.done`
-   * for an interactive tool — diarization finalises a turn about a second behind the
-   * agent's end of turn, and the transition slot covers it — or straight away for a held
-   * one, which keeps the agent silent until its result.
+   * for an interactive tool — the room ear's turn usually lands a fraction of a second
+   * after the customer stops, before the call does — or, for a held one, once the room
+   * ear has the turn, since the agent stays silent until its result.
    */
   const runTool = useCallback((call: QueuedCall, resultReachesAgent: boolean): Outcome => {
     if (call.name === "add_item" && typeof call.args.item === "string") {
