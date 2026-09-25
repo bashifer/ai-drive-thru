@@ -1,4 +1,4 @@
-# Backseat — one order, several people talking
+# Backseat — who in the car asked for what
 
 Built for the [AssemblyAI Voice Agent Hackathon](https://lablab.ai/ai-hackathons/assemblyai-voice-agent-hackathon) (Sep 2026).
 **Live demo: <https://lablab-drive-thru.vercel.app>** — ▶ Watch a recorded lane needs no microphone and no key.
@@ -17,6 +17,23 @@ after videos of wrong orders went viral — one took an order from the next lane
 to 260 McNuggets; Taco Bell slowed its 500-store rollout in 2025 after a prank order for
 18,000 cups of water. The 2025 Intouch drive-thru study put a number on it: AI lanes are 21
 seconds faster, and order accuracy drops to 83% against an 87% average.
+
+## At a glance
+
+The same audio through the same agent and tools, 21 scripted cars on the real APIs (24 Sep
+2026). The only difference is whether the room ear and the order guards are on.
+
+| | Backseat | Single ear, no guards |
+| --- | --- | --- |
+| Test cars passed | **19/21** | 16/21 |
+| Orders exactly right | **91%** | 81% |
+| Food nobody asked for | **1** | 3 |
+| Absurd orders handed to a person | **2 of 2** | 0 of 2 |
+
+On 156 real customer phrasings from Amazon's FoodOrdering set, spoken into a live session by a
+synthetic voice, 96% of orders come out exactly right, and 93% over a recorded car interior.
+Every voice in these runs is TTS: [what that does and does not prove](#honest-about-the-audio)
+and [what still fails](#what-still-fails-and-why-it-stays-in-the-report) are below.
 
 ## The layer this project is about
 
@@ -237,7 +254,7 @@ order guards are switched on.
 | Slot accuracy | **99%** | 99% |
 | False adds | **1** | 3 |
 | Escalation recall | **100%** | 0% |
-| Speaker attribution | **95%** | 95% |
+| Speaker attribution (expected lines only, see below) | **95%** | 95% |
 | Lines placed with no voice | **0%** | — (every line is the driver's) |
 | Reply after a tool call, last word → first audible word | p50 3.0 s · p90 3.8 s (46 replies) | p50 2.7 s · p90 3.9 s (44 replies) |
 
@@ -347,7 +364,7 @@ real car. The ladder this is climbing:
 | A | synthetic voices, synthetic noise | order logic, regressions, every commit | in the repo |
 | B | same scenes over recorded car, traffic and babble | robustness to real noise | in the repo (`npm run fetch:noise`) |
 | C | scenes re-recorded through a speaker in a car | far field and the device path | not yet |
-| D | live demo with people | that it works with humans at all | the video |
+| D | live demo with people | that it works with humans at all | not yet: the customers in the video are TTS voices too |
 
 The voices are still TTS at every tier below D. That is the honest limit of these numbers:
 synthetic speakers are easier to tell apart than real ones, which is exactly where the two
