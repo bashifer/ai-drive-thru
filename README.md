@@ -477,4 +477,5 @@ Burger Lab is a fictional brand. No real restaurant chain is affiliated or depic
 
 ## Licence
 
-MIT.
+MIT ([LICENSE](LICENSE)). The benchmark fetches its third-party data at run time, and each
+source keeps its own licence: [THIRD_PARTY.md](THIRD_PARTY.md).
