@@ -58,7 +58,8 @@ drive-thru order actually goes wrong.
 - **Distinguishes a request from a cart change.** A voice that is not the driver produces a
   candidate; the driver's yes turns it into food. Nobody's shake arrives unasked.
 - **Enforces who may change what.** The driver may change anything. A passenger may change
-  their own item, and needs the driver for anyone else's.
+  their own item, and needs the driver to change anyone else's. Taking food off needs nobody's
+  permission: a "no" can only make the bill smaller, and the close reads back what is left.
 - **Refuses absurd orders.** Quantity, repeat-loop and total guards turn "260 nuggets" into
   a question and "18,000 waters" into a human handover.
 - **Closes into one kitchen ticket, bagged by person.** When the driver says that's
@@ -348,6 +349,10 @@ the cart barely notices.
 - **The model sometimes adds a correction instead of applying it.** In an earlier run, "two
   lab burgers — actually, make that three" came back as `add_item(2)` twice while the agent
   said "three". It passed here.
+- **The voice at the speaker decides, whoever pays.** The first voice to talk to the lane is
+  treated as the driver, so a teenager at the wheel outranks a parent in the passenger seat: the
+  parent's "no" can take the milkshake off, and the teenager's "I'll pay for it" puts it back.
+  Handing the say over by voice ("ask my mom", "she's paying") is not built, and no scene tests it.
 - **"Mhm" comes back as "milk".** Reliably enough that the back-channel scene now says
   "Uh-huh. Right." instead — the scene is about turn-taking, not about that homophone.
 - These are arguments for the tiers below, not scenes to be tuned until they are green.
